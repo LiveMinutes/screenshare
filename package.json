@@ -1,0 +1,10 @@
+{
+  "name": "screensharing",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-hub": "~0.5.0",
+    "grunt-shell": "~0.3.1"
+  }
+}
