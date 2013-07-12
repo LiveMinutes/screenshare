@@ -1,0 +1,15 @@
+# IntelliJ files
+.idea/
+*.iml
+
+# Mac OS X DS_Store
+.DS_Store
+
+# Node modules
+node_modules/
+
+# Bower components
+bower_components/
+
+# Build
+build/
