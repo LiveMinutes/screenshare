@@ -1,0 +1,17 @@
+{
+  "name": "screensharing-client",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "mocha": "~1.12.0",
+    "should": "~1.2.2",
+    "expect.js": "~0.2.0",
+    "grunt": "~0.4.1",
+    "grunt-config": "~0.1.4",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-watch": "~0.4.4",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt-contrib-clean": "~0.4.1",
+    "grunt-cafe-mocha": "~0.1.8"
+  }
+}
