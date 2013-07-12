@@ -1,0 +1,132 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet" type="text/css">
+    <link href="https://html5-demos.appspot.com/static/common.css" rel="stylesheet" type="text/css">
+    <script src="/js/imagediff/imagediff.js"></script>
+    <script src="/js/binary/binary.js"></script>
+    <script src="/js/transmitter.js"></script>
+    <script src="/js/demo-client.js"></script>
+    <title><%= title %></title>
+    <style>
+    html, body {
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: "Open Sans", sans-serif;
+    }
+    .flexcenter {
+      display: -webkit-flex;
+      -webkit-align-items: center;
+      -webkit-justify-content: center;
+      display: -moz-flex;
+      -moz-align-items: center;
+      -moz-justify-content: center;
+      display: -o-flex;
+      -o-align-items: center;
+      -o-justify-content: center;
+      display: -ms-flex;
+      -ms-align-items: center;
+      -ms-justify-content: center;
+      box-sizing: border-box;
+    }
+    article section {
+      -webkit-flex-direction: column;
+      -moz-flex-direction: column;
+      -o-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      margin-top: 1em;
+    }
+    .error {
+      color: red;
+      display: none;
+      font-weight: bold;
+      margin-top: 3em;
+    }
+    .error.show {
+      display: block;
+    }
+    h2 {
+      text-align: center;
+    }
+    button {
+      text-transform: uppercase;
+    }
+    video {
+      display: none;
+      /* height: 480px; */
+      /*position: absolute;
+      right: 10px;
+      bottom: 10px;
+      z-index: 1000;*/
+      padding: 7px;
+      background: rgba(255, 0, 0, 1);
+      transition: all 1s ease-in-out;
+    }
+    .fade {
+      -webkit-filter: grayscale(0.8);
+      -moz-filter: grayscale(0.8);
+      -o-filter: grayscale(0.8);
+      -ms-filter: grayscale(0.8);
+      background: rgba(0, 0, 0, 1);
+    }
+    /* #body on the URL allows us to hide extra elements for iframe embedding purposes. */
+    :target {
+      background: transparent;
+      -webkit-font-smoothing: initial;
+    }
+    :target .flexcenter {
+      margin: 0;
+    }
+    :target video {
+      height: 410px;
+    }
+    :target details,
+    :target article h2 {
+      display: none !important;
+    }
+    </style>
+</head>
+<body id="body" class="flexcenter">
+
+<details>
+  <summary>What's this?</summary>
+  <div>
+   <p>Example of using the <a href="http://www.html5rocks.com/tutorials/getusermedia/intro/" target="_blank"><code>navigator.getUserMedia()</code></a> API extensions to do screen capturing. Note, this is true screen sharing (e.g. more
+    than just the browser tab) and not tab content sharing. If you're interested in tab sharing,
+    Chrome has an experimental defined <a href="http://www.chromium.org/developers/design-documents/extensions/proposed-changes/apis-under-development/webrtc-tab-content-capture">here</a>.</p>
+    <p>Note: This app is for demo purposes. Your screen is only displayed to you and not sent to another party in any way.
+      View the source!</p>
+    <p><b>Support:</b> Chrome 26 (currently Canary) with "Enable screen capture support in getUserMedia()" turned
+    on in about:flags or <code>--enable-usermedia-screen-capturin</code> flag set.</code></p>
+  </div>
+</details>
+
+<article>
+  <h2>Screenshare with getUserMedia()</h2>
+  <section class="flexcenter">
+    <div id="container"></div>
+    <button>Capture your screen</button>
+    <div class="error"></div>
+  </section>
+</article>
+<script>
+(function() {
+    var serverUrl = "ws://" + window.location.hostname + ":9001",
+        room = '<%= room %>'
+        container = document.querySelector("#container"),
+        button = document.querySelector("button"),
+        error = document.querySelector(".error");
+
+    new DemoEmit(serverUrl, room, button, container, error);
+})()
+</script>
+<!--[if IE]>
+<script src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
+<script>CFInstall.check({mode: 'overlay'});</script>
+<![endif]-->
+</body>
+</html>

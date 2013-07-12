@@ -1,0 +1,23 @@
+{
+  "name": "screensharing-demo",
+  "version": "0.0.1",
+  "description": "Demo of screen sharing",
+  "main": "DemoApp.js",
+  "dependencies": {
+    "express": "~3.3.4",
+    "ejs": "~0.8.4",
+    "jade": "~0.32.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node demo-server.js"
+  },
+  "author": "",
+  "license": "BSD",
+  "devDependencies": {
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt": "~0.4.1",
+    "grunt-hub": "~0.5.0",
+    "grunt-shell": "~0.3.1"
+  }
+}
