@@ -1,0 +1,26 @@
+{
+  "name": "screensharing-server",
+  "version": "0.0.1",
+  "main": "./server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "binaryjs": "~0.1.8"
+  },
+  "devDependencies": {
+    "mocha": "~1.12.0",
+    "should": "~1.2.2",
+    "expect.js": "~0.2.0",
+    "grunt": "~0.4.1",
+    "grunt-config": "~0.1.4",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-watch": "~0.4.4",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt-contrib-clean": "~0.4.1",
+    "grunt-cafe-mocha": "~0.1.8",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-shell": "~0.3.1"
+  }
+}
