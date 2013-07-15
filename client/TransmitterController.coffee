@@ -110,7 +110,7 @@ class window.ScreenSharingTransmitter extends Base
           @trigger "socketOpen"
 
         @client.on "close", =>
-          @stop
+          @stop()
           @client = null
           @trigger "socketClose"
 
