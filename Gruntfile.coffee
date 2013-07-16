@@ -9,20 +9,20 @@ module.exports = (grunt) ->
           stdout: true
           execOptions:
             cwd: './client'
-        command: 'npm install --dev'
+        command: 'npm install'
       installServer:
         options:
           stdout: true
           execOptions:
             cwd: './server'
-        command: 'npm install --dev'
+        command: 'npm install'
 
       installDemo:
         options:
           stdout: true
           execOptions:
             cwd: './demo'
-        command: 'npm install --dev'
+        command: 'npm install'
 
     hub:
       server:
