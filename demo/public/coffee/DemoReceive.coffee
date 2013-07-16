@@ -3,38 +3,32 @@ class window.DemoReceive
 
   constructor: (serverUrl, room, canvasKeyFrame, canvasDiff) ->
     @canvasKeyFrame = canvasKeyFrame
-    @canvasDiff = canvasDiff
-
-    @last_key_frame = false
+    @contextKeyFrame = @canvasKeyFrame.getContext('2d')
 
     @receiver = new ScreenSharingReceiver serverUrl, room
     @receiver.on "snap", (e) =>
       data = e.data
       if (data.k)
-        draw(data)
+        drawKeyFrame(data)
       else
-        draw(data)
+        drawDiff(data)
 
-    draw = (data) =>
-      if data.k
-        canvas = @canvasKeyFrame
-        @canvasDiff.getContext("2d").clearRect 0, 0, @canvasDiff.width, @canvasDiff.height
-      else
-        canvas = @canvasDiff
+    drawKeyFrame = (keyFrame) =>
+      if keyFrame.k
+        width = keyFrame.w
+        height = keyFrame.h
+
+        if @canvasKeyFrame.width isnt width or @canvasKeyFrame.height isnt height
+          @canvasKeyFrame.width = width
+          @canvasKeyFrame.height = height
 
       image = new Image()
-      image.src = data.d
-      image.onload = ->
-        #if (!data.k && !last_key_frame) return;
-        width = data.w
-        height = data.h
+      image.src = keyFrame.d
+      image.onload = =>
+        @contextKeyFrame.drawImage image, 0, 0, keyFrame.w, keyFrame.h
 
-        if canvas.width isnt width or canvas.height isnt height
-          canvas.width = width
-          canvas.height = height
-
-        context = canvas.getContext("2d")
-        context.clearRect data.x, data.y, data.w, data.h
-        context.drawImage this, data.x, data.y, data.w, data.h
-
-      @last_key_frame = true
+    drawDiff = (frame) =>
+      image = new Image()
+      image.src = frame.d
+      image.onload = =>
+        @contextKeyFrame.drawImage image, frame.x*256, frame.y*256, 256, 256
