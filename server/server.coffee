@@ -19,11 +19,23 @@ class ScreenSharingServer
           if not @rooms[meta.room]
             @rooms[meta.room] = {
               keyFrame: null,
+              frames: {},
               transmitter: null,
               receivers: []
             }
+
         else
           console.error "Room is mandatory"
+
+        stream.on "close", =>
+          console.log "Close", stream
+
+          if stream is @rooms[meta.room].transmitter
+            @rooms[meta.room].transmitter = null
+          else
+            index = @rooms[meta.room].receivers.indexOf(stream)
+            if index > -1
+              @rooms[meta.room].receivers.splice(index,1)
 
         # New transmitter, only one per room
         if meta.type is "write"
@@ -31,9 +43,17 @@ class ScreenSharingServer
             console.log "Add transmitter", stream.id
             @rooms[meta.room].transmitter = stream
             @rooms[meta.room].transmitter.on "data", (data) =>
+              #console.log data
+              @rooms[meta.room].transmitter.write 1
               if data.k
                 console.log "Store keyframe", data
                 @rooms[meta.room].keyFrame = data
+              else
+                for frame in data
+                  console.log "Store frame", frame
+                  frame.t = new Date().getTime()
+                  key = frame.x.toString() + frame.y.toString()
+                  @rooms[meta.room].frames[key] = frame
 
             if @rooms[meta.room].receivers.length
               console.log "Existing clients", @rooms[meta.room].receivers.length
@@ -42,22 +62,27 @@ class ScreenSharingServer
                 @rooms[meta.room].transmitter.pipe client
           else
             console.error "Transmitter already registered"
-        # New receivers
+        # New receivers, only maxClients per room
         else if meta.type is "read"
           if @rooms[meta.room].receivers.length < maxClients
             console.log "Add receiver", stream.id
             @rooms[meta.room].receivers.push(stream)
 
-            stream.on "close", =>
-              index = @rooms[meta.room].receivers.indexOf(stream)
-              console.log "Close", stream
-              @rooms[meta.room].receivers.splice(index,1)
+            if @rooms[meta.room].keyFrame
+              console.log "Sending keyframe", @rooms[meta.room].keyFrame
+              stream.write @rooms[meta.room].keyFrame
 
-            if @rooms[meta.room].transmitter
-              @rooms[meta.room].transmitter.pipe stream
-              if @rooms[meta.room].keyFrame
-                console.log "Sending keyframe", @rooms[meta.room].keyFrame
-                stream.write @rooms[meta.room].keyFrame
+            stream.on "data", (data) =>
+              console.log "Client data", data
+              if data.command == 0 and @rooms[meta.room].frames[data.i]
+                console.log "Frames timestamp", @rooms[meta.room].frames[data.i].t, parseInt(data.t)
+                if @rooms[meta.room].frames[data.i].t > parseInt(data.t)
+                  @rooms[meta.room].frames[data.i].t = @rooms[meta.room].frames[data.i].t.toString()
+                  console.log "Sending frame", @rooms[meta.room].frames[data.i]
+                  stream.write @rooms[meta.room].frames[data.i]
+                else
+                  console.log "Frame", data.i, "not modified"
+                  stream.write data.i
           else
             console.error "Room full"
       else

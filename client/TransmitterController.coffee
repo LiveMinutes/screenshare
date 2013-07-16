@@ -2,13 +2,14 @@ class window.ScreenSharingTransmitter extends Base
   snap = null
   dataURItoBlob = null
   canPlayHandler = null
+  TILE_SIZE = 256
 
   defaults:
     eventNS: "screensharing"
     exportFormat: 'image/jpeg'
     compression: 0.7
-    width: 800
-    height: false
+    width: 1280
+    height: screen.height
   
   constructor: (serverUrl, room, options) ->
     @serverUrl = serverUrl
@@ -17,7 +18,7 @@ class window.ScreenSharingTransmitter extends Base
 
     @streaming = false
     @sending = false
-    @lastFrame = false
+    @lastFrames = null
     @frameDropped = 0
 
     @cvs = document.createElement("canvas")
@@ -27,17 +28,65 @@ class window.ScreenSharingTransmitter extends Base
     snap = =>
       if @sending
         console.log "dropped frame"
-        if @frameDropped > 25
-          @frameDropped = 0
-          @sending = false
-        else
-          @frameDropped++
+#        if @frameDropped > 25
+#          @frameDropped = 0
+#          @sending = false
+#        else
+#          @frameDropped++
         return
+
+      @sending = true
         
       @ctx.drawImage @video, 0, 0, @options.width, @options.height
-      new_frame = @ctx.getImageData(0, 0, @options.width, @options.height)
-      
-      if @lastFrame
+
+      if not @keyFrame
+        if @stream and @stream.writable
+          frame =
+            d: dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
+            w: @options.width
+            h: @options.height
+            k: true
+          console.log 'Send keyframe', frame
+          @stream.write frame
+          @keyFrame = true
+      else
+
+        xOffset = 0
+        yOffset = 0
+        framesUpdate = []
+        while not stop
+          key = xOffset.toString() + yOffset.toString()
+          lastFrame = @lastFrames[key]
+          newFrame = @ctx.getImageData(xOffset * TILE_SIZE, yOffset * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+
+          if !imagediff.equal(newFrame, lastFrame) and @stream and @stream.writable
+            data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, @options.compression
+            @lastFrames[key] = newFrame
+            framesUpdate.push
+              d: dataURItoBlob(data)
+              x: xOffset
+              y: yOffset
+
+          xOffset++
+          if xOffset*TILE_SIZE >= @options.width
+            xOffset = 0
+
+            yOffset++
+            if yOffset*TILE_SIZE >= @options.height
+              yOffset = 0
+              stop = true
+
+        #console.log "Stop X", xOffset
+        #console.log "Stop Y", xOffset
+
+        if framesUpdate.length
+          console.log 'Send frame', framesUpdate
+          @stream.write framesUpdate
+      @sending = false
+
+
+
+      ###if @lastFrame
         diff = imagediff.diff(new_frame, @lastFrame)
         r_width = diff.maxXY[0] - diff.minXY[0]
         r_height = diff.maxXY[1] - diff.minXY[1]
@@ -45,7 +94,7 @@ class window.ScreenSharingTransmitter extends Base
         r_y = diff.minXY[1]
         console.log "% diff", (r_width * r_height) / (@options.width * @options.height)
         @keyFrame = (r_width * r_height) / (@options.width * @options.height) > 0.50
-        
+
       if @keyFrame or not @lastFrame
         console.log "Key frame"
         r_width = @options.width
@@ -68,7 +117,7 @@ class window.ScreenSharingTransmitter extends Base
           h: r_height
           x: r_x
           y: r_y
-          k: (@keyFrame is @lastFrame)
+          k: (@keyFrame is @lastFrame)###
 
 
     dataURItoBlob = (dataURI, callback) ->
@@ -105,8 +154,11 @@ class window.ScreenSharingTransmitter extends Base
             room: @room
             type: "write"
 
-          @sending = true
-
+          ###@stream.on "data", (data) =>
+            if data is 1
+              console.log "Received"
+              @sending = false
+###
           @trigger "socketOpen"
 
         @client.on "close", =>
@@ -115,7 +167,7 @@ class window.ScreenSharingTransmitter extends Base
           @trigger "socketClose"
 
     canPlayHandler = =>
-      @keyFrame = true
+      @keyFrame = false
       @streaming = true
 
       @options.height = @video.videoHeight / (@video.videoWidth/@options.width)
@@ -124,7 +176,28 @@ class window.ScreenSharingTransmitter extends Base
       @cvs.setAttribute 'width', @options.width
       @cvs.setAttribute 'height', @options.height
 
-      @timer = setInterval(snap, 50)
+      stop = false
+      xOffset = 0
+      yOffset = 0
+      @lastFrames = {}
+      while not stop
+        key = xOffset.toString() + yOffset.toString()
+        lastFrame = @ctx.getImageData(xOffset*TILE_SIZE, yOffset*TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        @lastFrames[key] = lastFrame
+
+        xOffset++
+        if xOffset*TILE_SIZE >= @options.width
+          xOffset = 0
+
+          yOffset++
+          if yOffset*TILE_SIZE >= @options.height
+            yOffset = 0
+            stop = true
+
+      console.log "Stop X", xOffset
+      console.log "Stop Y", xOffset
+
+      @timer = setInterval(snap, 30)
 
       @trigger "canplay"
 
