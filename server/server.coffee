@@ -104,5 +104,10 @@ class ScreenSharingServer
 exports.ScreenSharingServer = ScreenSharingServer
 
 if require.main == module
+  process.on 'uncaughtException', (err) ->
+    console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+    console.error(err.stack)
+    process.exit(1)
+
   new ScreenSharingServer().run()
 
