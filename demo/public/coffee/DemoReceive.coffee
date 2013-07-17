@@ -22,17 +22,18 @@ class window.DemoReceive
           @canvasKeyFrame.width = width
           @canvasKeyFrame.height = height
 
-      image = new Image()
-      image.src = keyFrame.d
-      image.onload = =>
-        @contextKeyFrame.drawImage image, 0, 0, keyFrame.w, keyFrame.h
-        callback()
+      keyFrame.x = keyFrame.y = 0
+      draw keyFrame
+      callback()
 
     drawDiff = (frames, callback) =>
-      context = @contextKeyFrame
       for frame in frames
-        image = new Image()
-        image.src = frame.d
-        image.onload = ->
-          context.drawImage this, frame.x*256, frame.y*256, 256, 256
-          callback() if frame is frames[frames.length-1]
+        draw frame
+        callback() if frame is frames[frames.length-1]
+
+    draw = (frame) =>
+      context = @contextKeyFrame
+      image = new Image()
+      image.src = frame.d
+      image.onload = ->
+        context.drawImage this, frame.x*256, frame.y*256, 256, 256
