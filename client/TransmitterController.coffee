@@ -95,43 +95,6 @@ class window.ScreenSharingTransmitter extends Base
             console.log 'Send frame', framesUpdate
             @stream.write framesUpdate
             @timestamp = timestamp
-      #@sending = false
-
-
-
-      ###if @lastFrame
-        diff = imagediff.diff(new_frame, @lastFrame)
-        r_width = diff.maxXY[0] - diff.minXY[0]
-        r_height = diff.maxXY[1] - diff.minXY[1]
-        r_x = diff.minXY[0]
-        r_y = diff.minXY[1]
-        console.log "% diff", (r_width * r_height) / (@options.width * @options.height)
-        @keyFrame = (r_width * r_height) / (@options.width * @options.height) > 0.50
-
-      if @keyFrame or not @lastFrame
-        console.log "Key frame"
-        r_width = @options.width
-        r_height = @options.height
-        r_x = 0
-        r_y = 0
-  
-        data = @cvs.toDataURL("image/jpeg", @options.compression) # can also use 'image/png'
-        @keyFrame = new_frame
-      else
-        data = imagediff.toCanvas(@ctx.getImageData(r_x, r_y, r_width, r_height)).toDataURL @options.exportFormat, @options.compression
-
-      @lastFrame = new_frame
-      @sending = true
-
-      if @stream and @stream.writable
-        @stream.write
-          d: dataURItoBlob(data)
-          w: r_width
-          h: r_height
-          x: r_x
-          y: r_y
-          k: (@keyFrame is @lastFrame)###
-
 
     dataURItoBlob = (dataURI, callback) ->
       # convert base64 to raw binary data held in a string
