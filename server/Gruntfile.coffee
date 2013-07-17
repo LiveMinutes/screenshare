@@ -18,8 +18,10 @@ module.exports = (grunt) ->
 
       coffee:
           server:
-              files:
-                  "<%=dest%>/server.js": ["server.coffee"]
+            options:
+              bare:true
+            files:
+                "<%=dest%>/server.js": ["server.coffee"]
 
       cafemocha:
         testThis:

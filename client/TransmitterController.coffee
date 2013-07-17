@@ -30,8 +30,13 @@ class window.ScreenSharingTransmitter extends Base
       @framesSent = 0
       @counting = false
     snap = =>
+      timestamp = new Date().getTime()
       if @sending
         console.log "dropped frame"
+
+        if timestamp - @timestamp > 100
+          console.log "Unlock"
+          @sending = false
 #        if @frameDropped > 25
 #          @frameDropped = 0
 #          @sending = false
@@ -89,10 +94,7 @@ class window.ScreenSharingTransmitter extends Base
           if framesUpdate.length
             console.log 'Send frame', framesUpdate
             @stream.write framesUpdate
-            setTimeout (=>
-              if @sending
-                @sending = false
-              ), 500
+            @timestamp = timestamp
       #@sending = false
 
 

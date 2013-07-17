@@ -19,6 +19,9 @@ class window.ScreenSharingReceiver extends Base
 
       window.btoa binary
 
+    _endDrawCallback = =>
+      @getRectangle = false
+
     client = new BinaryClient(serverUrl)
 
     client.on "open", =>
@@ -30,21 +33,22 @@ class window.ScreenSharingReceiver extends Base
         @sending = false
         console.log data
 
-        data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
-
-        if data.k
-          @keyFrameReceived = true
-          @width = data.w
-          @height = data.h
-          setInterval getRectangle, 50
-          @trigger "snap", {data:data}
-        else if typeof data.x isnt 'undefined' and typeof data.y isnt 'undefined'
-          key = data.x.toString() + data.y.toString()
-          @frames[key] = data
-          @trigger "snap", {data:data}
-        else if @frames[data] and @frames[data].sending
-          @frames[data].sending = false
-
+        if data
+          if data.k
+            @keyFrameReceived = true
+            @width = data.w
+            @height = data.h
+            setInterval getRectangle, 500
+            data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
+            @trigger "snap", {data:data, callback: _endDrawCallback}
+          else if typeof data is 'object' and data.length
+            for frame in data
+              frame.d = "data:image/jpeg;base64," + _arrayBufferToBase64(frame.d)
+              @timestamp = frame.t unless frame.t < @timestamp
+            @trigger "snap", {data:data, callback: _endDrawCallback}
+          else
+            _endDrawCallback()
+      
     client.on "error", (e) =>
       console.log "error", e
       @trigger "error"
@@ -54,35 +58,10 @@ class window.ScreenSharingReceiver extends Base
         return
       @getRectangle = true
 
-      key = @xOffset.toString() + @yOffset.toString()
-      sending = if @frames[key] then @frames[key].sending else false
+      if not @timestamp
+        @timestamp = -1
 
-      @xOffset++
-      if @xOffset*TILE_SIZE >= @width
-        @xOffset = 0
 
-        @yOffset++
-        if @yOffset*TILE_SIZE >= @height
-          @yOffset = 0
-
-      if sending
-        @getRectangle = false
-        return
-
-      console.log "Ask frame", key
-
-      if not @frames[key]
-        @frames[key] =
-          sending: true
-          t: -1
-      else
-        @frames[key].sending = true
-
-      @stream.write
-        command: 0
-        i : key
-        t:  @frames[key].t
-
-      @getRectangle = false
+      @stream.write @timestamp.toString()
 
 

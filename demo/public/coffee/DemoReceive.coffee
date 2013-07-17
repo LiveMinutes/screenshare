@@ -9,11 +9,11 @@ class window.DemoReceive
     @receiver.on "snap", (e) =>
       data = e.data
       if (data.k)
-        drawKeyFrame(data)
+        drawKeyFrame(data, e.callback)
       else
-        drawDiff(data)
+        drawDiff(data, e.callback)
 
-    drawKeyFrame = (keyFrame) =>
+    drawKeyFrame = (keyFrame, callback) =>
       if keyFrame.k
         width = keyFrame.w
         height = keyFrame.h
@@ -26,9 +26,13 @@ class window.DemoReceive
       image.src = keyFrame.d
       image.onload = =>
         @contextKeyFrame.drawImage image, 0, 0, keyFrame.w, keyFrame.h
+        callback()
 
-    drawDiff = (frame) =>
-      image = new Image()
-      image.src = frame.d
-      image.onload = =>
-        @contextKeyFrame.drawImage image, frame.x*256, frame.y*256, 256, 256
+    drawDiff = (frames, callback) =>
+      context = @contextKeyFrame
+      for frame in frames
+        image = new Image()
+        image.src = frame.d
+        image.onload = ->
+          context.drawImage this, frame.x*256, frame.y*256, 256, 256
+          callback() if frame is frames[frames.length-1]

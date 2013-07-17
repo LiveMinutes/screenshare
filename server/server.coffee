@@ -42,18 +42,18 @@ class ScreenSharingServer
           if not @rooms[meta.room].transmitter
             console.log "Add transmitter", stream.id
             @rooms[meta.room].transmitter = stream
-            @rooms[meta.room].transmitter.on "data", (data) =>
-              #console.log data
-              @rooms[meta.room].transmitter.write 1
-              if data.k
-                console.log "Store keyframe", data
-                @rooms[meta.room].keyFrame = data
-              else
-                for frame in data
-                  console.log "Store frame", frame
-                  frame.t = new Date().getTime()
-                  key = frame.x.toString() + frame.y.toString()
-                  @rooms[meta.room].frames[key] = frame
+            @rooms[meta.room].transmitter.on "data", (data) =>    
+              if data         
+                if data.k
+                  console.log "Store keyframe", data
+                  @rooms[meta.room].keyFrame = data
+                else
+                  for frame in data
+                    frame.t = new Date().getTime()
+                    key = frame.x.toString() + frame.y.toString()
+                    @rooms[meta.room].frames[key] = frame
+                    console.log "Store frame", key, frame
+                @rooms[meta.room].transmitter.write 1
 
             if @rooms[meta.room].receivers.length
               console.log "Existing clients", @rooms[meta.room].receivers.length
@@ -74,19 +74,18 @@ class ScreenSharingServer
 
             stream.on "data", (data) =>
               console.log "Client data", data
-              if data.command == 0
-                timestamp = parseInt(data.t)
-                console.log "Frames timestamp", timestamp
-                updatedFrames = []
-                for frame in room].frames
-                  if frame.t > data.t
-                    updatedFrames.push(frame)
-                
-                if updatedFrames.length
-                  stream.write updatedFrames
-                else
-                  console.log "Frame", data.i, "not modified"
-                  stream.write data.i
+              
+              timestamp = parseInt(data)
+              console.log "Frames timestamp", timestamp
+              updatedFrames = []
+              for own key, frame of @rooms[meta.room].frames
+                  updatedFrames.push(frame) if frame.t > timestamp
+              
+              if updatedFrames.length
+                stream.write updatedFrames
+              else
+                console.log "Frame", data, "not modified"
+                stream.write data
           else
             console.error "Room full"
       else
@@ -94,14 +93,9 @@ class ScreenSharingServer
 
   run: ->
     @binaryEmitServer = new BinaryServer({port:@port})
-    @binaryDispatchServer = new BinaryServer({port:@port+1})
     @rooms = {}
 
     @binaryEmitServer.on "connection", (client) =>
-      client.on "error", onError
-      client.on "stream", onStream
-
-    @binaryDispatchServer.on "connection", (client) =>
       client.on "error", onError
       client.on "stream", onStream
 
