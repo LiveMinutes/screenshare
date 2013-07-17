@@ -36,7 +36,7 @@ class window.ScreenSharingReceiver extends Base
           @keyFrameReceived = true
           @width = data.w
           @height = data.h
-          setInterval getRectangle, 10
+          setInterval getRectangle, 50
           @trigger "snap", {data:data}
         else if typeof data.x isnt 'undefined' and typeof data.y isnt 'undefined'
           key = data.x.toString() + data.y.toString()

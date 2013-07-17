@@ -5,8 +5,7 @@
   "main": "DemoApp.js",
   "dependencies": {
     "express": "~3.3.4",
-    "ejs": "~0.8.4",
-    "jade": "~0.32.0"
+    "ejs": "~0.8.4"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

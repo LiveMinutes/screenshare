@@ -42,7 +42,7 @@ module.exports = (grunt) ->
             stdout: true
             execOptions:
               cwd: '<%=dest%>'
-          command: 'npm install --production'
+          command: 'npm install --production --no-registry'
         start:
           options:
             stdout: true

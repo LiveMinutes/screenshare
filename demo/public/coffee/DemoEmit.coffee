@@ -17,7 +17,7 @@ class window.DemoEmit
       @button.addEventListener "click", stop
       @container.innerHTML = ""
 
-      @transmitter.on "canplay", canPlayHandler
+#      @transmitter.on "canplay", canPlayHandler
 
       @transmitter.start()
 

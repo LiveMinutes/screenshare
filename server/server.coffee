@@ -74,12 +74,16 @@ class ScreenSharingServer
 
             stream.on "data", (data) =>
               console.log "Client data", data
-              if data.command == 0 and @rooms[meta.room].frames[data.i]
-                console.log "Frames timestamp", @rooms[meta.room].frames[data.i].t, parseInt(data.t)
-                if @rooms[meta.room].frames[data.i].t > parseInt(data.t)
-                  @rooms[meta.room].frames[data.i].t = @rooms[meta.room].frames[data.i].t.toString()
-                  console.log "Sending frame", @rooms[meta.room].frames[data.i]
-                  stream.write @rooms[meta.room].frames[data.i]
+              if data.command == 0
+                timestamp = parseInt(data.t)
+                console.log "Frames timestamp", timestamp
+                updatedFrames = []
+                for frame in room].frames
+                  if frame.t > data.t
+                    updatedFrames.push(frame)
+                
+                if updatedFrames.length
+                  stream.write updatedFrames
                 else
                   console.log "Frame", data.i, "not modified"
                   stream.write data.i
@@ -89,9 +93,15 @@ class ScreenSharingServer
         console.error "Type is mandatory"
 
   run: ->
-    @binaryServer = new BinaryServer({port:@port})
+    @binaryEmitServer = new BinaryServer({port:@port})
+    @binaryDispatchServer = new BinaryServer({port:@port+1})
     @rooms = {}
-    @binaryServer.on "connection", (client) =>
+
+    @binaryEmitServer.on "connection", (client) =>
+      client.on "error", onError
+      client.on "stream", onStream
+
+    @binaryDispatchServer.on "connection", (client) =>
       client.on "error", onError
       client.on "stream", onStream
 

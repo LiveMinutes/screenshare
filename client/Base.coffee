@@ -14,12 +14,13 @@ class window.Base
     this
 
   off: (event, handler) ->
+    return this unless @_events? and @_events[event]?
     for suspect, index in @_events[event] when suspect is handler
       @_events[event].splice index, 1
     this
 
   trigger: (event, args...) ->
-    return this unless @_events[event]?
+    return this unless @_events? and @_events[event]?
     handler.apply this, args for handler in @_events[event]
     this
 

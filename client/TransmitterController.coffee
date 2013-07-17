@@ -7,9 +7,9 @@ class window.ScreenSharingTransmitter extends Base
   defaults:
     eventNS: "screensharing"
     exportFormat: 'image/jpeg'
-    compression: 0.7
-    width: 1280
-    height: screen.height
+    compression: 0.8
+    width: screen.width * 0.8
+    height: false
   
   constructor: (serverUrl, room, options) ->
     @serverUrl = serverUrl
@@ -25,6 +25,10 @@ class window.ScreenSharingTransmitter extends Base
     @ctx = @cvs.getContext "2d"
     @video = document.createElement 'video'
 
+    timer = =>
+      console.log "Frames sent", @framesSent
+      @framesSent = 0
+      @counting = false
     snap = =>
       if @sending
         console.log "dropped frame"
@@ -35,54 +39,61 @@ class window.ScreenSharingTransmitter extends Base
 #          @frameDropped++
         return
 
-      @sending = true
+      if not @counting
+        @counting = true
+        setTimeout(timer, 1000)
         
       @ctx.drawImage @video, 0, 0, @options.width, @options.height
 
-      if not @keyFrame
-        if @stream and @stream.writable
-          frame =
-            d: dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
-            w: @options.width
-            h: @options.height
-            k: true
-          console.log 'Send keyframe', frame
-          @stream.write frame
-          @keyFrame = true
-      else
+      if @stream and @stream.writable
+        @sending = true
+        if not @keyFrame
+            frame =
+              d: dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
+              w: @options.width
+              h: @options.height
+              k: true
+            console.log 'Send keyframe', frame
+            @stream.write frame
+            @keyFrame = true
+        else
+          xOffset = 0
+          yOffset = 0
+          framesUpdate = []
+          while not stop
+            key = xOffset.toString() + yOffset.toString()
+            lastFrame = @lastFrames[key]
+            newFrame = @ctx.getImageData(xOffset * TILE_SIZE, yOffset * TILE_SIZE, TILE_SIZE, TILE_SIZE)
 
-        xOffset = 0
-        yOffset = 0
-        framesUpdate = []
-        while not stop
-          key = xOffset.toString() + yOffset.toString()
-          lastFrame = @lastFrames[key]
-          newFrame = @ctx.getImageData(xOffset * TILE_SIZE, yOffset * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+            if !imagediff.equal(newFrame, lastFrame) and @stream and @stream.writable
+              data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, @options.compression
+              @lastFrames[key] = newFrame
+              @framesSent++
+              framesUpdate.push
+                d: dataURItoBlob(data)
+                x: xOffset
+                y: yOffset
 
-          if !imagediff.equal(newFrame, lastFrame) and @stream and @stream.writable
-            data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, @options.compression
-            @lastFrames[key] = newFrame
-            framesUpdate.push
-              d: dataURItoBlob(data)
-              x: xOffset
-              y: yOffset
+            xOffset++
+            if xOffset*TILE_SIZE >= @options.width
+              xOffset = 0
 
-          xOffset++
-          if xOffset*TILE_SIZE >= @options.width
-            xOffset = 0
+              yOffset++
+              if yOffset*TILE_SIZE >= @options.height
+                yOffset = 0
+                stop = true
 
-            yOffset++
-            if yOffset*TILE_SIZE >= @options.height
-              yOffset = 0
-              stop = true
+          #console.log "Stop X", xOffset
+          #console.log "Stop Y", xOffset
 
-        #console.log "Stop X", xOffset
-        #console.log "Stop Y", xOffset
-
-        if framesUpdate.length
-          console.log 'Send frame', framesUpdate
-          @stream.write framesUpdate
-      @sending = false
+          if framesUpdate.length
+            console.log 'Send frame', framesUpdate
+            @stream.write framesUpdate
+            setTimeout (=>
+              if @sending
+                @sending = false
+              ), 500
+      #@sending = false
 
 
 
@@ -150,15 +161,16 @@ class window.ScreenSharingTransmitter extends Base
         @client = BinaryClient(@serverUrl)
 
         @client.on "open", =>
+          console.log "Stream open"
           @stream = @client.createStream
             room: @room
             type: "write"
 
-          ###@stream.on "data", (data) =>
+          @stream.on "data", (data) =>
             if data is 1
               console.log "Received"
               @sending = false
-###
+
           @trigger "socketOpen"
 
         @client.on "close", =>
@@ -176,6 +188,7 @@ class window.ScreenSharingTransmitter extends Base
       @cvs.setAttribute 'width', @options.width
       @cvs.setAttribute 'height', @options.height
 
+      @framesSent = 0
       stop = false
       xOffset = 0
       yOffset = 0
@@ -197,7 +210,7 @@ class window.ScreenSharingTransmitter extends Base
       console.log "Stop X", xOffset
       console.log "Stop Y", xOffset
 
-      @timer = setInterval(snap, 30)
+      @timer = setInterval(snap, 10)
 
       @trigger "canplay"
 
@@ -227,7 +240,7 @@ class window.ScreenSharingTransmitter extends Base
   stop: ->
     if @timer and @localStream
       clearInterval @timer
-      @timer = false;
+      @timer = false
       @sending = false
       @streaming = false
       @localStream.stop()
