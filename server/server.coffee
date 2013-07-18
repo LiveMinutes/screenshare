@@ -6,12 +6,19 @@ class ScreenSharingServer
 
   onError = null
   onStream = null
+  closeRoom = null
 
   constructor: (port) ->
     @port = port or defaultPort
 
     onError = (e) ->
       console.log e.stack, e.message
+
+    closeRoom = (roomId) =>
+      room = @rooms[roomId]
+      if room.receivers.length is 0 and room.transmitter is null
+        console.log "Closing room", room
+        room = null
 
     onStream = (stream, meta) =>
       if meta.type
@@ -26,22 +33,19 @@ class ScreenSharingServer
 
         else
           console.error "Room is mandatory"
-
-        stream.on "close", =>
-          console.log "Close", stream
-
-          if stream is @rooms[meta.room].transmitter
-            @rooms[meta.room].transmitter = null
-          else
-            index = @rooms[meta.room].receivers.indexOf(stream)
-            if index > -1
-              @rooms[meta.room].receivers.splice(index,1)
+          return
 
         # New transmitter, only one per room
         if meta.type is "write"
           if not @rooms[meta.room].transmitter
             console.log "Add transmitter", stream.id
             @rooms[meta.room].transmitter = stream
+
+            @rooms[meta.room].transmitter.on "close", =>
+              console.log "Close", @rooms[meta.room].transmitter
+              @rooms[meta.room].transmitter = null
+              closeRoom(meta.room)
+              
             @rooms[meta.room].transmitter.on "data", (data) =>
               if @rooms[meta.room].processFrames
                 console.log "Dropped frames"
@@ -52,16 +56,20 @@ class ScreenSharingServer
                 if data.k
                   console.log "Store keyframe", data
                   @rooms[meta.room].keyFrame = data
+                  @rooms[meta.room].transmitter.write 1
                 else
                   for frame in data
-                    frame.t = new Date().getTime()
+                    frame.ts = new Date().getTime().toString()
                     key = frame.x.toString() + frame.y.toString()
                     @rooms[meta.room].frames[key] = frame
                     console.log "Store frame", key, frame
-                @rooms[meta.room].transmitter.write 1
+                  @rooms[meta.room].transmitter.write data.length
+                
                 @rooms[meta.room].processFrames = false
           else
             console.error "Transmitter already registered"
+            return
+
         # New receivers, only maxClients per room
         else if meta.type is "read"
           if @rooms[meta.room].receivers.length < maxClients
@@ -72,6 +80,12 @@ class ScreenSharingServer
               console.log "Sending keyframe", @rooms[meta.room].keyFrame
               stream.write @rooms[meta.room].keyFrame
 
+            stream.on "close", =>
+              index = @rooms[meta.room].receivers.indexOf(stream)
+              if index > -1
+                @rooms[meta.room].receivers.splice(index,1)
+                closeRoom(meta.room)
+
             stream.on "data", (data) =>
               console.log "Client data", data
               
@@ -79,7 +93,7 @@ class ScreenSharingServer
               console.log "Frames timestamp", timestamp
               updatedFrames = []
               for own key, frame of @rooms[meta.room].frames
-                  updatedFrames.push(frame) if frame.t >= timestamp
+                  updatedFrames.push(frame) if frame.t > timestamp
               
               if updatedFrames.length
                 console.log "Sending", updatedFrames.length, "updated frames since", timestamp
@@ -89,14 +103,16 @@ class ScreenSharingServer
                 stream.write data
           else
             console.error "Room full"
+            return
       else
         console.error "Type is mandatory"
+        return
 
   run: ->
-    @binaryEmitServer = new BinaryServer({port:@port})
+    @binaryServer = new BinaryServer({port:@port})
     @rooms = {}
 
-    @binaryEmitServer.on "connection", (client) =>
+    @binaryServer.on "connection", (client) =>
       client.on "error", onError
       client.on "stream", onStream
 
