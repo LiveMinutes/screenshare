@@ -1526,7 +1526,7 @@ BinaryClient.prototype.createStream = function(meta){
 };
 
 BinaryClient.prototype.close = BinaryClient.prototype.destroy = function(code, message) {
-  this._socket.close(code, message);
+  this._socket.close();
 };
 
 exports.BinaryClient = BinaryClient;

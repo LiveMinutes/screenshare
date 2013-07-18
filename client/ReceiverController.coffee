@@ -1,6 +1,5 @@
 class window.ScreenSharingReceiver extends Base
   TILE_SIZE = 256
-
   constructor: (serverUrl, room) ->
     @keyFrameReceived = false
     @xOffset = 0
@@ -30,8 +29,7 @@ class window.ScreenSharingReceiver extends Base
         type: "read"
       )
       @stream.on "data", (data) =>
-        @sending = false
-        console.log data
+        #console.log data
 
         if data
           if data.k
@@ -42,9 +40,15 @@ class window.ScreenSharingReceiver extends Base
             data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
             @trigger "snap", {data:data, callback: _endDrawCallback}
           else if typeof data is 'object' and data.length
+            now = new Date().getTime()
             for frame in data
+              frame.t = parseInt(frame.t)
+              frame.ts = parseInt(frame.t)
+              console.log "Latence from transmitter now", now, "and", frame.t, (now - frame.t)/1000, "s"
+              console.log "Latence from server now", now, "and", frame.t, (now - frame.ts)/1000, "s"
               frame.d = "data:image/jpeg;base64," + _arrayBufferToBase64(frame.d)
               @timestamp = frame.t unless frame.t < @timestamp
+              
             @trigger "snap", {data:data, callback: _endDrawCallback}
           else
             _endDrawCallback()

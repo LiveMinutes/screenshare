@@ -177,6 +177,7 @@
       maxX    = 0,
       maxY    = 0,
       length  = cData.length,
+      mismatchCount = 0,
       x = 0, y = 0, r = 0, g = 0, b = 0, i = 0;
     
     for (var y = 0; y < height; y++) {
@@ -191,12 +192,14 @@
 			      if (y < minY) minY = y; 
 			      if (x > maxX) maxX = x; 
 			      if (y > maxY) maxY = y; 
+            mismatchCount++;
 		      }
 	    }
     }
         
     c.minXY = [minX,minY];
     c.maxXY = [maxX,maxY];
+    c.misMatchPercentage = (mismatchCount / (height*width) * 100);
     
     return c;
   }
