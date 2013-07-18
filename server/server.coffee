@@ -43,12 +43,12 @@ class ScreenSharingServer
             console.log "Add transmitter", stream.id
             @rooms[meta.room].transmitter = stream
             @rooms[meta.room].transmitter.on "data", (data) =>
-              if @processFrames
+              if @rooms[meta.room].processFrames
                 console.log "Dropped frames"
                 return
-
-              @processFrames = true    
+    
               if data         
+                @rooms[meta.room].processFrames = true
                 if data.k
                   console.log "Store keyframe", data
                   @rooms[meta.room].keyFrame = data
@@ -59,13 +59,7 @@ class ScreenSharingServer
                     @rooms[meta.room].frames[key] = frame
                     console.log "Store frame", key, frame
                 @rooms[meta.room].transmitter.write 1
-                @processFrames = false
-
-            if @rooms[meta.room].receivers.length
-              console.log "Existing clients", @rooms[meta.room].receivers.length
-              for client in @rooms[meta.room].receivers
-                console.log "Pipe to client", client
-                @rooms[meta.room].transmitter.pipe client
+                @rooms[meta.room].processFrames = false
           else
             console.error "Transmitter already registered"
         # New receivers, only maxClients per room
