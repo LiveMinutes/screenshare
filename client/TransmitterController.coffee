@@ -53,6 +53,9 @@ class window.ScreenSharingTransmitter extends Base
 
       @hasSent = false
 
+      if @sentFrameRate.length >= 100
+        console.log "Reset"
+        @sentFrameRate[key].length = 0 
       # Calculate sent frames per sec.
       ratioSent = (@framesSent/@framesToSend) * 100
       @framesToSend = 0
@@ -75,10 +78,10 @@ class window.ScreenSharingTransmitter extends Base
     getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] > 60 or @avgSendFps <= 60
-        console.log key, "Low quality", @options.mediumQuality
+      if @avgDiffFrames[key] > 60 or @avgSendFrames >= 130
+        console.log key, "Low quality", @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] > 30 or @avgSendFps <= 30
+      else if @avgDiffFrames[key] > 30 or @avgSendFrames >= 100
         console.log key, "Medium quality", @options.mediumQuality
         quality = @options.mediumQuality
 
