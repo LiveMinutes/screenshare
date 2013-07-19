@@ -28,7 +28,7 @@ class ScreenSharingServer
               keyFrame: null,
               frames: {},
               transmitter: null,
-              receivers: []
+              receivers: {}
             }
 
         else
@@ -58,12 +58,28 @@ class ScreenSharingServer
                   @rooms[meta.room].keyFrame = data
                   @rooms[meta.room].transmitter.write 1
                 else
+                  updatedFrames = {}
                   for frame in data
-                    frame.ts = new Date().getTime().toString()
+                    #console.log "Store frame", key, frame
                     key = frame.x.toString() + frame.y.toString()
+                    frame.ts = new Date().getTime().toString()
+
+                    for id, client of @rooms[meta.room].receivers
+                      console.log "Client", id, client.lastTimestamp
+                      if frame.t > client.lastTimestamp
+                        if not updatedFrames[client.id]
+                          updatedFrames[client.id] = []
+                        console.log "Updated frame", frame.x, frame.y
+                        updatedFrames[client.id].push frame
+
                     @rooms[meta.room].frames[key] = frame
-                    console.log "Store frame", key, frame
+
                   @rooms[meta.room].transmitter.write data.length
+
+                  for client of updatedFrames
+                    console.log "Sending updated frames to client", client
+                    client.lastTimestamp = null
+                    @rooms[meta.room].receivers[client].write updatedFrames[client]
                 
                 @rooms[meta.room].processFrames = false
           else
@@ -72,9 +88,9 @@ class ScreenSharingServer
 
         # New receivers, only maxClients per room
         else if meta.type is "read"
-          if @rooms[meta.room].receivers.length < maxClients
+          if Object.keys(@rooms[meta.room].receivers).length < maxClients
             console.log "Add receiver", stream.id
-            @rooms[meta.room].receivers.push(stream)
+            @rooms[meta.room].receivers[stream.id] = stream
 
             if @rooms[meta.room].keyFrame
               console.log "Sending keyframe", @rooms[meta.room].keyFrame
@@ -99,8 +115,10 @@ class ScreenSharingServer
                 console.log "Sending", updatedFrames.length, "updated frames since", timestamp
                 stream.write updatedFrames
               else
-                console.log "Frame", data, "not modified"
-                stream.write data
+                console.log "Frame not modified since", data, "storing timestamp"
+                if @rooms[meta.room].receivers[stream.id] 
+                  @rooms[meta.room].receivers[stream.id].lastTimestamp = data
+                
           else
             console.error "Room full"
             return
