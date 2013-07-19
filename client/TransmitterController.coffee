@@ -59,9 +59,10 @@ class window.ScreenSharingTransmitter extends Base
       @framesToSend = 0
       @framesSent = 0
 
-      @sentFrameRate.push(ratioSent)
-      sum = @sentFrameRate.reduce (t, s) -> t + s
-      @avgSendFrames = sum/@sentFrameRate.length
+      if ratioSent isnt NaN
+        @sentFrameRate.push(ratioSent)
+        sum = @sentFrameRate.reduce (t, s) -> t + s
+        @avgSendFrames = sum/@sentFrameRate.length
 
       console.log "Sent frames:", ratioSent
       console.log "Avg:", @avgSendFrames
