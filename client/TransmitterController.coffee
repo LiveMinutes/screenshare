@@ -154,16 +154,21 @@ class window.ScreenSharingTransmitter extends Base
                     quality = getQuality(key)
 
                     equal = imagediff.equal(newFrame, lastFrame.data)
+                    if not equal
+                      lastFrame.data = newFrame
+                      unless @avgDiffFrames[key]?
+                        @avgDiffFrames[key] = 0
+                      else
+                        @avgDiffFrames[key]++
 
                     #sampleDiff(key, diff.misMatchPercentage)
                     console.log "Mismatch",  @avgDiffFrames[key]
 
-                    if not equal or quality > lastFrame.quality
+                    if not @sending and (@avgDiffFrames[key] > 0 or quality > lastFrame.quality)
                       console.log "Compressing at rate", quality, 'vs before', lastFrame.quality
-                      lastFrame.quality = quality
-                      lastFrame.data = newFrame
-
+                      
                       if not @sending
+                        lastFrame.quality = quality
                         data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
                         framesUpdate.push
                           d: dataURItoBlob(data)
@@ -171,8 +176,6 @@ class window.ScreenSharingTransmitter extends Base
                           y: yOffset
                           t: new Date().getTime().toString()
                         @avgDiffFrames[key] = 0
-                      else
-                        @avgDiffFrames[key]++
                   else
                     @lastFrames[key] = 
                       data: newFrame
