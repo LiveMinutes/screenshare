@@ -13,7 +13,7 @@ class window.ScreenSharingTransmitter extends Base
     highQuality: 0.8
     mediumQuality: 0.6
     lowQuality: 0.4
-    width: if screen.width <= 1280 then screen.width else 1280
+    width: if screen.width <= 1024 then screen.width else 1024
     height: false
   
   ###*
@@ -51,9 +51,9 @@ class window.ScreenSharingTransmitter extends Base
 
       @hasSent = false
 
-      if @sentFrameRate.length >= 100
+      if @sentFrameRate.length >= 50
         console.log "Reset"
-        @sentFrameRate[key].length = 0 
+        @sentFrameRate.length = 0 
       # Calculate sent frames per sec.
       ratioSent = (@framesSent/@framesToSend) * 100
       @framesToSend = 0
@@ -77,11 +77,11 @@ class window.ScreenSharingTransmitter extends Base
     getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] > 60 or @avgSendFrames >= 130
-        console.log key, "Low quality", @options.lowQuality
+      if @avgDiffFrames[key] > 60 or @avgSendFrames >= 130 or @avgSendFrames <= 50
+        #console.log key, "Low quality", @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] > 30 or @avgSendFrames >= 100
-        console.log key, "Medium quality", @options.mediumQuality
+      else if @avgDiffFrames[key] > 30 or @avgSendFrames >= 100 or @avgSendFrames <= 75
+        #console.log key, "Medium quality", @options.mediumQuality
         quality = @options.mediumQuality
 
       return quality
@@ -95,7 +95,7 @@ class window.ScreenSharingTransmitter extends Base
       if not @diffFrames[key]
         @diffFrames[key] = []
       # Starting new samples series every 100 frames
-      else if @diffFrames[key].length >= 100
+      else if @diffFrames[key].length >= 50
         console.log "Reset"
         @diffFrames[key].length = 0 
 
@@ -114,9 +114,9 @@ class window.ScreenSharingTransmitter extends Base
 
         # If dead locked (no response received for the last frame)
         # TODO: Call server to check is alive
-        if timestamp - @timestamp >= 500
-          console.log "Unlock"
-          @sending = false
+        # if timestamp - @timestamp >= 500
+        #   console.log "Unlock"
+        #   @sending = false
 
         @timestamp = timestamp
         return
