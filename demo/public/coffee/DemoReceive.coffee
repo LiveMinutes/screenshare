@@ -1,4 +1,4 @@
-class window.DemoReceive
+class window.DemoReceive extends Base
   draw = null
 
   constructor: (serverUrl, room, canvasKeyFrame, canvasDiff) ->
@@ -31,9 +31,10 @@ class window.DemoReceive
         callback() if frame is frames[frames.length-1]
 
     draw = (frame, callback) =>
+      tileSize = @constructor.TILE_SIZE
       context = @contextKeyFrame
       image = new Image()
       image.src = frame.d
       image.onload = ->
-        context.drawImage this, frame.x*256, frame.y*256, frame.w or 256, frame.h or 256
+        context.drawImage this, frame.x*tileSize, frame.y*tileSize, frame.w or tileSize, frame.h or tileSize
         callback if callback

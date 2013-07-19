@@ -1,5 +1,4 @@
 class window.ScreenSharingReceiver extends Base
-  TILE_SIZE = 256
   constructor: (serverUrl, room) ->
     @keyFrameReceived = false
     @xOffset = 0

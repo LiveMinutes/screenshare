@@ -1,6 +1,4 @@
 class window.ScreenSharingTransmitter extends Base
-  TILE_SIZE = 256
-
   ### Private members ###
   snap = null
   dataURItoBlob = null
@@ -149,7 +147,7 @@ class window.ScreenSharingTransmitter extends Base
                   key = xOffset.toString() + yOffset.toString()
                 
                   lastFrame = @lastFrames[key]
-                  newFrame = @ctx.getImageData(xOffset * TILE_SIZE, yOffset * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+                  newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
                   if lastFrame and lastFrame.data
                     quality = getQuality(key)
@@ -175,10 +173,10 @@ class window.ScreenSharingTransmitter extends Base
                       t: new Date().getTime().toString()
 
                   xOffset++
-                  if @options.width - xOffset*TILE_SIZE <= 0
+                  if @options.width - xOffset * @constructor.TILE_SIZE <= 0
                     xOffset = 0
                     yOffset++
-                    if @options.height - yOffset*TILE_SIZE <= 0
+                    if @options.height - yOffset * @constructor.TILE_SIZE <= 0
                       yOffset = 0
                       return true
                     return false
