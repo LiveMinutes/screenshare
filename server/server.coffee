@@ -97,9 +97,9 @@ class ScreenSharingServer
               stream.write @rooms[meta.room].keyFrame
 
             stream.on "close", =>
-              index = @rooms[meta.room].receivers.indexOf(stream)
-              if index > -1
-                @rooms[meta.room].receivers.splice(index,1)
+              index =
+              if @rooms[meta.room].receivers[stream.id]
+                delete @rooms[meta.room].receivers[stream.id]
                 closeRoom(meta.room)
 
             stream.on "data", (data) =>
