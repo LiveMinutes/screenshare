@@ -1,5 +1,5 @@
 class window.Base
-  @TILE_SIZE: 128
+  @TILE_SIZE: 512
   defaults: {}
 
   constructor: (options) ->
