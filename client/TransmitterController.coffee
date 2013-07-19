@@ -10,9 +10,9 @@ class window.ScreenSharingTransmitter extends Base
   ### Defaults options ###
   defaults:
     exportFormat: 'image/jpeg'
-    highQuality: 0.8
-    mediumQuality: 0.6
-    lowQuality: 0.4
+    highQuality: 0.6
+    mediumQuality: 0.3
+    lowQuality: 0.1
     width: if screen.width <= 1024 then screen.width else 1024
     height: false
   
@@ -51,8 +51,8 @@ class window.ScreenSharingTransmitter extends Base
 
       @hasSent = false
 
-      if @sentFrameRate.length >= 50
-        console.log "Reset"
+      if @sentFrameRate.length >= 10
+        console.log "Reset network"
         @sentFrameRate.length = 0 
       # Calculate sent frames per sec.
       ratioSent = (@framesSent/@framesToSend) * 100
@@ -77,11 +77,11 @@ class window.ScreenSharingTransmitter extends Base
     getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] > 60 or @avgSendFrames >= 130 or @avgSendFrames <= 50
+      if @avgDiffFrames[key] >= 2 #or @avgSendFrames >= 130 or @avgSendFrames <= 50
         #console.log key, "Low quality", @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] > 30 or @avgSendFrames >= 100 or @avgSendFrames <= 75
-        #console.log key, "Medium quality", @options.mediumQuality
+      else if @avgDiffFrames[key] >= 1 #or @avgSendFrames >= 100 or @avgSendFrames <= 75
+        console.log key, "Medium quality", @options.mediumQuality
         quality = @options.mediumQuality
 
       return quality
@@ -95,8 +95,8 @@ class window.ScreenSharingTransmitter extends Base
       if not @diffFrames[key]
         @diffFrames[key] = []
       # Starting new samples series every 100 frames
-      else if @diffFrames[key].length >= 50
-        console.log "Reset"
+      else if @diffFrames[key].length >= 5
+        console.log "Reset changes"
         @diffFrames[key].length = 0 
 
       @diffFrames[key].push misMatchPercentage
@@ -107,19 +107,19 @@ class window.ScreenSharingTransmitter extends Base
      * Take a snapshot of each modified part of the screen
     ###
     snap = =>
-      timestamp = new Date().getTime()
-      if @sending
-        console.log "dropped frame"
-        @frameDropped++
+      # timestamp = new Date().getTime()
+      # if @sending
+      #   console.log "dropped frame"
+      #   @frameDropped++
 
-        # If dead locked (no response received for the last frame)
-        # TODO: Call server to check is alive
-        # if timestamp - @timestamp >= 500
-        #   console.log "Unlock"
-        #   @sending = false
+      #   # If dead locked (no response received for the last frame)
+      #   # TODO: Call server to check is alive
+      #   # if timestamp - @timestamp >= 500
+      #   #   console.log "Unlock"
+      #   #   @sending = false
 
-        @timestamp = timestamp
-        return
+      #   @timestamp = timestamp
+      #   return
         
       @ctx.drawImage @video, 0, 0, @options.width, @options.height
 
@@ -153,26 +153,30 @@ class window.ScreenSharingTransmitter extends Base
                   if lastFrame and lastFrame.data
                     quality = getQuality(key)
 
-                    diff = imagediff.diff(newFrame, lastFrame.data)
+                    equal = imagediff.equal(newFrame, lastFrame.data)
 
-                    sampleDiff(key, diff.misMatchPercentage)
+                    #sampleDiff(key, diff.misMatchPercentage)
+                    console.log "Mismatch",  @avgDiffFrames[key]
 
-                    if diff.misMatchPercentage > 0 or quality > lastFrame.quality
+                    if not equal or quality > lastFrame.quality
                       console.log "Compressing at rate", quality, 'vs before', lastFrame.quality
-                      data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
                       lastFrame.quality = quality
                       lastFrame.data = newFrame
+
+                      if not @sending
+                        data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
+                        framesUpdate.push
+                          d: dataURItoBlob(data)
+                          x: xOffset
+                          y: yOffset
+                          t: new Date().getTime().toString()
+                        @avgDiffFrames[key] = 0
+                      else
+                        @avgDiffFrames[key]++
                   else
                     @lastFrames[key] = 
                       data: newFrame
-
-                  if data
-                    framesUpdate.push
-                      d: dataURItoBlob(data)
-                      x: xOffset
-                      y: yOffset
-                      t: new Date().getTime().toString()
-
+                    
                   xOffset++
                   if @options.width - xOffset * @constructor.TILE_SIZE <= 0
                     xOffset = 0
@@ -187,13 +191,14 @@ class window.ScreenSharingTransmitter extends Base
             #console.log "Stop X", xOffset
             #console.log "Stop Y", xOffset
 
-            if framesUpdate.length and @stream and @stream.writable
+            if not @sending and framesUpdate.length and @stream and @stream.writable
               # console.log 'Send frame', framesUpdate
               @sending = true    
               @hasSent = true
               @framesToSend += framesUpdate.length
               @stream.write framesUpdate
-            @timestamp = timestamp
+            # @timestamp = timestamp
+      @timer = setTimeout(snap, 10)
 
     ###*
      * Convert base64 to raw binary data held in a string.
@@ -259,7 +264,7 @@ class window.ScreenSharingTransmitter extends Base
       @framesSent = 0
       @framesToSend = 0
 
-      @timer = setInterval(snap, 10)
+      @timer = setTimeout snap, 0
       @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 0
 
       @trigger "canplay"
