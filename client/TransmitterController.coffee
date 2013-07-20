@@ -151,8 +151,6 @@ class window.ScreenSharingTransmitter extends Base
                   newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
                   if lastFrame and lastFrame.data
-                    quality = getQuality(key)
-
                     equal = imagediff.equal(newFrame, lastFrame.data)
                     if not equal
                       lastFrame.data = newFrame
@@ -160,6 +158,8 @@ class window.ScreenSharingTransmitter extends Base
                         @avgDiffFrames[key] = 0
                       else
                         @avgDiffFrames[key]++
+
+                    quality = getQuality(key)
 
                     #sampleDiff(key, diff.misMatchPercentage)
                     console.log "Mismatch",  @avgDiffFrames[key]
