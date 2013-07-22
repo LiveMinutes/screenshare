@@ -41,19 +41,23 @@ class window.ScreenSharingTransmitter extends Base
     @ctx = @cvs.getContext '2d'
     @video = document.createElement 'video'
 
+    _processStatic = =>
+      @avgSendFrames = 0 if not @sending and not @hasSent
+      _processStaticInterval = setTimeout _processStatic, 50
+
     ###*
      * Process the network stats (frames to send / sent)
     ###
     _processNetworkStats = =>
-      if @sentFrameRate.length >= 5 or @notSent >= 2
+      if not @hasSent
+        #unless @notSent? then @notSent = 0 else @notSent++
+        _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
+        return
+
+      if @sentFrameRate.length >= 5
         console.log 'Reset network'
         @sentFrameRate.length = 0 
         @avgSendFrames = 0
-
-      if not @hasSent
-        unless @notSent? then @notSent = 0 else @notSent++
-        _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
-        return
 
       # process sent frames per sec.
       ratioSent = (@framesSent/@framesToSend) * 100
@@ -257,6 +261,7 @@ class window.ScreenSharingTransmitter extends Base
 
       @timer = setTimeout _snap, 0
       _processNetworkStatsInterval = setTimeout _processNetworkStats, 0
+      _processStaticInterval = setTimeout _processStatic, 0
 
       _createBinaryClient()
 
