@@ -47,7 +47,7 @@ class window.ScreenSharingTransmitter extends Base
     calculateNetworkStats = =>
       if not @hasSent
         @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 1000
-        unless @notSent then @notSent = 0 else @notSent++
+        unless @notSent? then @notSent = 0 else @notSent++
         return
 
       if @sentFrameRate.length >= 5 or @notSent >= 5
