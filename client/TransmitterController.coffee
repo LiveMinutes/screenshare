@@ -154,8 +154,8 @@ class window.ScreenSharingTransmitter extends Base
                         y: yOffset
                         t: new Date().getTime().toString()
                        
-                      @stream.write frame
                       framesToSend++
+                      @stream.write frame
                       @avgDiffFrames[key] = 0
                     
                   xOffset++
