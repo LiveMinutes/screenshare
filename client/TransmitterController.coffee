@@ -28,7 +28,7 @@ class window.ScreenSharingTransmitter extends Base
     super options
 
     @streaming = false
-    @sending = false
+    @sending = 0
     @lastFrames = {}
     @frameDropped = 0
 
@@ -109,16 +109,19 @@ class window.ScreenSharingTransmitter extends Base
               h: @options.height
               k: true
             console.log 'Send keyframe', frame
+            @sending++
             @stream.write frame
             @keyFrame = true
         # Sending diff frames
         else
           do () =>
+            framesToSend = 0
             framesUpdate = do () =>
               framesUpdate = []
               
               xOffset = 0
               yOffset = 0
+              
               stop = false
               while not stop
                 stop = do () =>
@@ -140,27 +143,20 @@ class window.ScreenSharingTransmitter extends Base
 
                     console.log 'Mismatch',  @avgDiffFrames[key]
 
-                    if not @sending and (@avgDiffFrames[key] > 0 or quality > lastFrame.quality)
+                    if @sending is 0 and (@avgDiffFrames[key] > 0 or quality > lastFrame.quality)
                       console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
                       
-                      if not @sending
-                        lastFrame.quality = quality
-                        data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
-                        frame = 
-                          d: _dataURItoBlob(data)
-                          x: xOffset
-                          y: yOffset
-                          t: new Date().getTime().toString()
-                        framesUpdate.push frame
-                          
-                        if not @sending and @stream and @stream.writable
-                          # console.log 'Send frame', framesUpdate
-                          #@sending = true    
-                          #@hasSent = true
-                          @framesToSend++
-                          @stream.write [frame]
-
-                        @avgDiffFrames[key] = 0
+                      lastFrame.quality = quality
+                      data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
+                      frame = 
+                        d: _dataURItoBlob(data)
+                        x: xOffset
+                        y: yOffset
+                        t: new Date().getTime().toString()
+                       
+                      @stream.write frame
+                      framesToSend++
+                      @avgDiffFrames[key] = 0
                     
                   xOffset++
                   if @options.width - xOffset * @constructor.TILE_SIZE <= 0
@@ -175,8 +171,8 @@ class window.ScreenSharingTransmitter extends Base
 
             #console.log 'Stop X', xOffset
             #console.log 'Stop Y', xOffset
-
-            @hasSent = @sending = framesUpdate.length and @stream and @stream.writable
+            @sending = framesToSend
+            @hasSent = @framesToSend > 0 and @stream and @stream.writable
             # if not @sending and framesUpdate.length and @stream and @stream.writable
             #   # console.log 'Send frame', framesUpdate
             #   @sending = true    
@@ -225,9 +221,10 @@ class window.ScreenSharingTransmitter extends Base
             type: 'write'
 
           @stream.on 'data', (data) =>
-            console.log 'Received'
-            @framesSent += data
-            @sending = false
+            if data is 1
+              console.log 'Received'
+              @framesSent++
+              @sending--
 
           @trigger 'socketOpen'
 
@@ -307,7 +304,7 @@ class window.ScreenSharingTransmitter extends Base
       clearInterval _processNetworkStatsInterval
       _processNetworkStatsInterval = false
 
-      @sending = false
+      @sending = 0
       @streaming = false
       @localStream.stop()
       @video.removeEventListener 'canplay', _canPlayHandler

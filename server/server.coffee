@@ -64,29 +64,28 @@ class ScreenSharingServer
             _write client, room.keyFrame
         else
           updatedFrames = {}
-          okFrames = 0
-          for frame in data
-            key = frame.x.toString() + frame.y.toString()
-            console.log 'Store frame', key, frame
-            
-            # Server timestamp
-            frame.ts = new Date().getTime().toString()
 
-            # Looking for clients' pending requests
-            for id, client of room.receivers
-              console.log 'Client', id, 'last timestamp', client.lastTimestamp
-              if frame.t > client.lastTimestamp
-                console.log 'Frame updated for pending request of client', id
-                if not updatedFrames[id]
-                  updatedFrames[id] = []
-                console.log 'Updated frame', frame.x, frame.y
-                _write client, frame
+          frame = data
+          key = frame.x.toString() + frame.y.toString()
+          console.log 'Store frame', key, frame
+          
+          # Server timestamp
+          frame.ts = new Date().getTime().toString()
+
+          # Looking for clients' pending requests
+          for id, client of room.receivers
+            console.log 'Client', id, 'last timestamp', client.lastTimestamp
+            if frame.t > client.lastTimestamp
+              console.log 'Frame updated for pending request of client', id
+              if not updatedFrames[id]
+                updatedFrames[id] = []
+              console.log 'Updated frame', frame.x, frame.y
+              _write client, frame
 
             room.frames[key] = frame
-            okFrames++
 
-          console.error 'Corrupted frames from transmitter in room', room if okFrames < data.length
-          _write transmitter, okFrames
+          #console.error 'Corrupted frames from transmitter in room', room if okFrames < data.length
+          _write transmitter, 1
 
           for client of updatedFrames
             console.log 'Sending updated frames to client', client
