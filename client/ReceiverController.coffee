@@ -1,8 +1,19 @@
 class window.ScreenSharingReceiver extends Base
-  constructor: (serverUrl, room) ->
-    @keyFrameReceived = false
+  _drawKeyFrame = null
+  _drawDiff = null
+  _draw = null
+  _arrayBufferToBase64 = null
+  _getRectangle = null
+
+  constructor: (serverUrl, room, canvas) ->
+    @serverUrl = serverUrl
+    @room = room
+    @canvas = canvas
+
     @xOffset = 0
     @yOffset = 0
+    @canvasContext = canvas.getContext '2d'
+
     @frames = {}
 
     _arrayBufferToBase64 = (buffer) ->
@@ -17,14 +28,54 @@ class window.ScreenSharingReceiver extends Base
 
       window.btoa binary
 
+    _drawKeyFrame = (keyFrame) =>
+      if keyFrame.k
+        width = keyFrame.w
+        height = keyFrame.h
+
+        if @canvas.width isnt width or @canvasKeyFrame.height isnt height
+          @canvas.width = width
+          @canvas.height = height
+
+        keyFrame.x = keyFrame.y = 0
+        _draw keyFrame, _endDrawCallback
+
+    _drawDiff = (frames) =>
+      for frame in frames
+        if frame is frames[frames.length-1]
+          _draw frame, _endDrawCallback
+        else
+          _draw frame
+
+    _draw = (frame, callback) =>
+      tileSize = @constructor.TILE_SIZE
+      context = @canvasContext
+      
+      image = new Image()
+      image.onload = ->
+        context.drawImage this, frame.x*tileSize, frame.y*tileSize, frame.w or tileSize, frame.h or tileSize
+        callback if callback
+      image.src = frame.d
+
     _endDrawCallback = =>
       @getRectangle = false
 
-    client = new BinaryClient(serverUrl)
+    _getRectangle = () =>
+      if @getRectangle
+        return
+      @getRectangle = true
+
+      if not @timestamp
+        @timestamp = -1
+
+      @stream.write @timestamp.toString()
+
+  start: ->
+    client = new BinaryClient(@serverUrl)
 
     client.on "open", =>
       @stream = client.createStream(
-        room: room
+        room: @room
         type: "read"
       )
       @stream.on "data", (data) =>
@@ -32,12 +83,9 @@ class window.ScreenSharingReceiver extends Base
 
         if data
           if data.k
-            @keyFrameReceived = true
-            @width = data.w
-            @height = data.h
-            setInterval getRectangle, 500
+            setInterval _getRectangle, 500
             data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
-            @trigger "snap", {data:data, callback: _endDrawCallback}
+            _drawKeyFrame data
           else if typeof data is 'object' and data.length
             now = new Date().getTime()
             for frame in data
@@ -48,23 +96,12 @@ class window.ScreenSharingReceiver extends Base
               frame.d = "data:image/jpeg;base64," + _arrayBufferToBase64(frame.d)
               @timestamp = frame.t unless frame.t < @timestamp
               
-            @trigger "snap", {data:data, callback: _endDrawCallback}
+            _drawDiff data
           else
             _endDrawCallback()
-      
-    client.on "error", (e) =>
-      console.log "error", e
-      @trigger "error"
-
-    getRectangle = () =>
-      if @getRectangle
-        return
-      @getRectangle = true
-
-      if not @timestamp
-        @timestamp = -1
-
-
-      @stream.write @timestamp.toString()
+        
+      client.on "error", (e) =>
+        console.log "error", e
+        @trigger "error"
 
 

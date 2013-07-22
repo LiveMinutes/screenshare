@@ -7,15 +7,13 @@
 </head>
 <body>
 <canvas id='keyframe' style="position:absolute;top:0px;left:0px"></canvas>
-<canvas id='diff' style="position:absolute;top:0px;left:0px"></canvas>
 <script>
     (function () {
         var serverUrl = "ws://" + window.location.hostname + ":9001",
             room = '<%= room %>'
             canvasKeyFrame = document.getElementById('keyframe'),
-            canvasDiff = document.getElementById('diff');
 
-        new DemoReceive(serverUrl, room, canvasKeyFrame, canvasDiff);
+        new DemoReceive(serverUrl, room, canvasKeyFrame);
     })()
 </script>
 </body>
