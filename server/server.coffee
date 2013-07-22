@@ -80,7 +80,7 @@ class ScreenSharingServer
                 if not updatedFrames[id]
                   updatedFrames[id] = []
                 console.log 'Updated frame', frame.x, frame.y
-                setTimeout (=> client.write frame), 0
+                _write client, frame
 
             room.frames[key] = frame
             okFrames++

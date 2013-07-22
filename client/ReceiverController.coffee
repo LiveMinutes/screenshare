@@ -50,7 +50,7 @@ class window.ScreenSharingReceiver extends Base
         width = keyFrame.w
         height = keyFrame.h
 
-        if @canvas.width isnt width or @canvasKeyFrame.height isnt height
+        if @canvas.width isnt width or @canvas.height isnt height
           @canvas.width = width
           @canvas.height = height
 
@@ -111,19 +111,19 @@ class window.ScreenSharingReceiver extends Base
           setTimeout _getRectangle, 0
           data.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(data.d)
           _drawKeyFrame data
-        else if typeof data is 'object' and data.length
+        else if typeof data is 'object'
           now = new Date().getTime()
+          frame = data
+          # for frame in data
+          frame.t = parseInt(frame.t)
+          frame.ts = parseInt(frame.t)
+          console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
+          console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
 
-          for frame in data
-            frame.t = parseInt(frame.t)
-            frame.ts = parseInt(frame.t)
-            console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
-            console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
-
-            frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
-            @timestamp = frame.t unless frame.t < @timestamp
-            
-          _drawDiff data
+          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+          @timestamp = frame.t unless frame.t < @timestamp
+          
+          _draw data, _endDrawCallback
         else
           _endDrawCallback()
 
