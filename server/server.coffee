@@ -20,6 +20,15 @@ class ScreenSharingServer
     _onError = (e) ->
       console.log e.stack, e.message
 
+    _write = (stream, data) ->
+      if stream.writable
+        console.error 'Write in', stream.screenshareId
+        stream.write data
+        return true
+      else
+        console.error 'Stream', stream.screenshareId, 'not writable'
+        return false
+
     ###
     * Close a room when no transmitter / receivers
     * @param {roomId} The room to close
@@ -49,10 +58,10 @@ class ScreenSharingServer
         if data.k
           console.log 'Store keyframe', data
           room.keyFrame = data
-          transmitter.write 1
+          _write transmitter, 1
 
           for id, client of room.receivers
-            client.write data
+            _write client, room.keyFrame
         else
           updatedFrames = {}
           okFrames = 0
@@ -76,13 +85,14 @@ class ScreenSharingServer
             room.frames[key] = frame
             okFrames++
 
-          console.error 'Corrupted frames from transmitter in room', room
-          transmitter.write okFrames
+          console.error 'Corrupted frames from transmitter in room', room if okFrames < data.length
+          _write transmitter, okFrames
 
           for client of updatedFrames
             console.log 'Sending updated frames to client', client
             client.lastTimestamp = null
-            room.receivers[client].write updatedFrames[client]
+            if _write room.receivers[client], updatedFrames[client]
+              client.lastTimestamp = null
         
         room.processFrames = false
 
@@ -130,7 +140,7 @@ class ScreenSharingServer
       
       if updatedFrames.length
         console.log 'Sending', updatedFrames.length, 'updated frames since', timestamp
-        receiver.write updatedFrames
+        _write receiver, updatedFrames
       else
         console.log 'Frame not modified since', data, 'storing timestamp'
         if room.receivers[receiver.screenshareId] 
@@ -161,7 +171,7 @@ class ScreenSharingServer
 
       if room.keyFrame
         console.log 'Sending keyframe', room.keyFrame
-        receiver.write room.keyFrame
+        _write receiver, room.keyFrame
 
       receiver.on 'close', (-> _onReceiverCloseHandler roomId, receiver)
       receiver.on 'data', ((data) -> _onReceiverDataHandler roomId, receiver, data)
