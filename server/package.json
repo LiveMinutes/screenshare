@@ -7,7 +7,10 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "binaryjs": "~0.1.8"
+    "binaryjs": "~0.1.8",
+    "canvas": "~1.0.3",
+    "btoa": "~1.1.0",
+    "atob": "~1.1.0"
   },
   "devDependencies": {
     "mocha": "~1.12.0",

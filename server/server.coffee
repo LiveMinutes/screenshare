@@ -1,4 +1,7 @@
-BinaryServer = require('binaryjs').BinaryServer;
+BinaryServer = require('binaryjs').BinaryServer
+Canvas = require 'canvas'
+btoa = require 'btoa'
+atob = require 'atob'
 
 class ScreenSharingServer
   defaultPort = 9001
@@ -7,6 +10,9 @@ class ScreenSharingServer
   onError = null
   onStream = null
   closeRoom = null
+  drawFrame = null
+  _arrayBufferToBase64 = null
+  _dataURItoBlob = null
 
   constructor: (port) ->
     @port = port or defaultPort
@@ -19,6 +25,65 @@ class ScreenSharingServer
       if room.receivers.length is 0 and room.transmitter is null
         console.log "Closing room", room
         room = null
+
+    ###*
+     * Convert base64 to raw binary data held in a string.
+     * Doesn't handle URLEncoded DataURIs
+     * @param {dataURI} ASCII Base64 string to encode
+     * @return {ArrayBuffer} ArrayBuffer representing the input string in binary
+    ###
+    _dataURItoBlob = (dataURI) ->
+      byteString = undefined
+      if dataURI.split(",")[0].indexOf("base64") >= 0
+        byteString = atob(dataURI.split(",")[1])
+      else
+        byteString = unescape(dataURI.split(",")[1])
+  
+      # separate out the mime component
+      mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0]
+  
+      # write the bytes of the string to an ArrayBuffer
+      ab = new ArrayBuffer(byteString.length)
+      ia = new Uint8Array(ab)
+      i = 0
+  
+      while i < byteString.length
+        ia[i] = byteString.charCodeAt(i)
+        i++
+  
+      # write the ArrayBuffer to a blob, and you're done
+      ab
+
+    _arrayBufferToBase64 = (buffer) ->
+      binary = ""
+      bytes = new Uint8Array(buffer)
+      len = bytes.byteLength
+      i = 0
+
+      while i < len
+        binary += String.fromCharCode(bytes[i])
+        i++
+
+      btoa binary
+
+    drawFrame = (room, frame) =>
+      console.log "Draw frame", frame, "in room", room
+      dataBase64 = "data:image/jpeg;base64," + _arrayBufferToBase64 frame.d
+
+      if frame.k
+        frame.x = frame.y = 0
+
+      tileSize = 256
+      image = new Canvas.Image()
+      image.onload = =>
+        @ctx.drawImage image, frame.x*tileSize, frame.y*tileSize, frame.w or tileSize, frame.h or tileSize
+        console.log "Keyframe.d before", @rooms[room].keyFrame.d
+        dataURI = @canvas.toDataURL 'image/jpeg'
+        console.log "Err", err.message
+        console.log "DataURI", dataURI
+        @rooms[room].keyFrame.d = _dataURItoBlob dataURI
+          #console.log "Keyframe.d after", @rooms[room].keyFrame.d
+      image.src = dataBase64
 
     onStream = (stream, meta) =>
       if meta.type
@@ -56,6 +121,9 @@ class ScreenSharingServer
                 if data.k
                   console.log "Store keyframe", data
                   @rooms[meta.room].keyFrame = data
+                  @canvas = new Canvas(data.w, data.h)
+                  @ctx = @canvas.getContext('2d')
+                  drawFrame meta.room, data
                   @rooms[meta.room].transmitter.write 1
                 else
                   updatedFrames = {}
@@ -72,7 +140,8 @@ class ScreenSharingServer
                         console.log "Updated frame", frame.x, frame.y
                         updatedFrames[client.id].push frame
 
-                    @rooms[meta.room].frames[key] = frame
+                    drawFrame meta.room, frame
+                    #@rooms[meta.room].frames[key] = frame
 
                   @rooms[meta.room].transmitter.write data.length
 
