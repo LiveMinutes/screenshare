@@ -180,9 +180,6 @@ class window.ScreenSharingTransmitter extends Base
                           y: yOffset
                           t: new Date().getTime().toString()
                         @avgDiffFrames[key] = 0
-                  else
-                    @lastFrames[key] = 
-                      data: newFrame
                     
                   xOffset++
                   if @options.width - xOffset * @constructor.TILE_SIZE <= 0
@@ -271,12 +268,31 @@ class window.ScreenSharingTransmitter extends Base
       @framesSent = 0
       @framesToSend = 0
 
+      xOffset = 0
+      yOffset = 0
+      stop = false
+      while not stop
+        stop = do () =>
+          key = xOffset.toString() + yOffset.toString()
+        
+          @lastFrames[key] = 
+            data: @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
+          xOffset++
+          if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+            xOffset = 0
+            yOffset++
+            if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+              yOffset = 0
+              return true
+            return false
+          return false
+
       @timer = setTimeout snap, 0
       @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 0
 
-      @trigger "canplay"
-
       createBinaryClient()
+
+      @trigger "canplay"
 
   start: (e) ->
     # Seems to only work over SSL.
