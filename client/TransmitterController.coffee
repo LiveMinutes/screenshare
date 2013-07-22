@@ -45,7 +45,7 @@ class window.ScreenSharingTransmitter extends Base
      * Process the network stats (frames to send / sent)
     ###
     calculateNetworkStats = =>
-      if @sentFrameRate.length >= 5 or @notSent >= 5
+      if @sentFrameRate.length >= 5 or @notSent >= 2
         console.log "Reset network"
         @sentFrameRate.length = 0 
         @avgSendFrames = 0
