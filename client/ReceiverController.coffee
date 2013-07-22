@@ -1,10 +1,19 @@
 class window.ScreenSharingReceiver extends Base
+  ### Private members ###
   _drawKeyFrame = null
   _drawDiff = null
   _draw = null
   _arrayBufferToBase64 = null
   _getRectangle = null
+  _createClient = null
+  _onDataHandler = null
 
+  ###*
+   * Constructor
+   * @param {serverUrl} URL to the Binary server
+   * @param {room} Room to use
+   * @params {canvas} Canvas to draw on
+  ###
   constructor: (serverUrl, room, canvas) ->
     @serverUrl = serverUrl
     @room = room
@@ -16,8 +25,12 @@ class window.ScreenSharingReceiver extends Base
 
     @frames = {}
 
+    ###*
+     * Decode a binary base64 arraybuffer to a Base64 string
+     * @param {buffer} Buffer to decode
+    ###
     _arrayBufferToBase64 = (buffer) ->
-      binary = ""
+      binary = ''
       bytes = new Uint8Array(buffer)
       len = bytes.byteLength
       i = 0
@@ -28,6 +41,10 @@ class window.ScreenSharingReceiver extends Base
 
       window.btoa binary
 
+    ###*
+    * Draw a key frame on the canvas
+    * @param {keyFrame} The key frame to draw
+    ###
     _drawKeyFrame = (keyFrame) =>
       if keyFrame.k
         width = keyFrame.w
@@ -40,6 +57,10 @@ class window.ScreenSharingReceiver extends Base
         keyFrame.x = keyFrame.y = 0
         _draw keyFrame, _endDrawCallback
 
+    ###*
+    * Draw a set of frames on the canvas
+    * @param {frames} Frames to draw
+    ###
     _drawDiff = (frames) =>
       for frame in frames
         if frame is frames[frames.length-1]
@@ -47,6 +68,11 @@ class window.ScreenSharingReceiver extends Base
         else
           _draw frame
 
+    ###*
+    * Draw a frame on the canvas
+    * @param {frame} the frame to draw
+    * @param {callback} Callback to call when drawn
+    ###
     _draw = (frame, callback) =>
       tileSize = @constructor.TILE_SIZE
       context = @canvasContext
@@ -57,10 +83,16 @@ class window.ScreenSharingReceiver extends Base
         callback() if callback
       image.src = frame.d
 
+    ###*
+    * Callback when drawn
+    ###
     _endDrawCallback = =>
       @getRectangle = false
 
-    _getRectangle = () =>
+    ###*
+    * Ask to the server if new rectangles are available
+    ###
+    _getRectangle = =>
       if @getRectangle
         setTimeout _getRectangle, 10
         return
@@ -72,38 +104,51 @@ class window.ScreenSharingReceiver extends Base
       @stream.write @timestamp.toString()
       setTimeout _getRectangle, 0
 
+    _onDataHandler = (data) =>
+      #console.log data
+      if data
+        if data.k
+          setTimeout _getRectangle, 0
+          data.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(data.d)
+          _drawKeyFrame data
+        else if typeof data is 'object' and data.length
+          now = new Date().getTime()
+
+          for frame in data
+            frame.t = parseInt(frame.t)
+            frame.ts = parseInt(frame.t)
+            console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
+            console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
+
+            frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+            @timestamp = frame.t unless frame.t < @timestamp
+            
+          _drawDiff data
+        else
+          _endDrawCallback()
+
+    ###
+    * Create the WS binary client
+    ###
+    _createClient = =>
+      client = new BinaryClient(@serverUrl)
+
+      client.on 'open', =>
+        @stream = client.createStream
+          room: @room
+          type: 'read'
+
+        @stream.on 'data', _onDataHandler
+          
+      client.on 'error', (e) =>
+        console.log 'error', e
+        @trigger 'error'
+
+  ###*
+  * Start the receiver, connect to the server
+  ###
   start: ->
-    client = new BinaryClient(@serverUrl)
-
-    client.on "open", =>
-      @stream = client.createStream(
-        room: @room
-        type: "read"
-      )
-      @stream.on "data", (data) =>
-        #console.log data
-
-        if data
-          if data.k
-            setTimeout _getRectangle, 0
-            data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
-            _drawKeyFrame data
-          else if typeof data is 'object' and data.length
-            now = new Date().getTime()
-            for frame in data
-              frame.t = parseInt(frame.t)
-              frame.ts = parseInt(frame.t)
-              console.log "Latence from transmitter now", now, "and", frame.t, (now - frame.t)/1000, "s"
-              console.log "Latence from server now", now, "and", frame.t, (now - frame.ts)/1000, "s"
-              frame.d = "data:image/jpeg;base64," + _arrayBufferToBase64(frame.d)
-              @timestamp = frame.t unless frame.t < @timestamp
-              
-            _drawDiff data
-          else
-            _endDrawCallback()
-        
-      client.on "error", (e) =>
-        console.log "error", e
-        @trigger "error"
+    _createClient()
+    
 
 

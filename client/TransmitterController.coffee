@@ -1,11 +1,11 @@
 class window.ScreenSharingTransmitter extends Base
   ### Private members ###
-  snap = null
-  dataURItoBlob = null
-  canPlayHandler = null
-  calculateNetworkStats = null
-  getQuality = null
-  sampleDiff = null
+  _snap = null
+  _dataURItoBlob = null
+  _canPlayHandler = null
+  _processNetworkStatsInterval = null
+  _processNetworkStats = null
+  _getQuality = null
 
   ### Defaults options ###
   defaults:
@@ -37,25 +37,25 @@ class window.ScreenSharingTransmitter extends Base
     @diffFrames = {}
     @avgDiffFrames = {}
 
-    @cvs = document.createElement("canvas")
-    @ctx = @cvs.getContext "2d"
+    @cvs = document.createElement 'canvas'
+    @ctx = @cvs.getContext '2d'
     @video = document.createElement 'video'
 
     ###*
      * Process the network stats (frames to send / sent)
     ###
-    calculateNetworkStats = =>
+    _processNetworkStats = =>
       if @sentFrameRate.length >= 5 or @notSent >= 2
-        console.log "Reset network"
+        console.log 'Reset network'
         @sentFrameRate.length = 0 
         @avgSendFrames = 0
 
       if not @hasSent
         unless @notSent? then @notSent = 0 else @notSent++
-        @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 1000
+        _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
         return
 
-      # Calculate sent frames per sec.
+      # process sent frames per sec.
       ratioSent = (@framesSent/@framesToSend) * 100
       @framesToSend = 0
       @framesSent = 0
@@ -65,73 +65,42 @@ class window.ScreenSharingTransmitter extends Base
         sum = @sentFrameRate.reduce (t, s) -> t + s
         @avgSendFrames = sum/@sentFrameRate.length
 
-      console.log "Sent frames:", ratioSent
-      console.log "Avg:", @avgSendFrames
+      console.log 'Sent frames:', ratioSent
+      console.log 'Avg:', @avgSendFrames
 
       @hasSent = false
       @notSent = 0
 
-      @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 1000
+      _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
 
     ###*
      * Return the correct quality regarding network quality and screen activity
      * @param {key} Key of the frame to sample
      * @return The correct quality
     ###
-    getQuality = (key) =>
+    _getQuality = (key) =>
       quality = @options.highQuality
 
       if @avgDiffFrames[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
-        #console.log key, "Low quality", @options.lowQuality
+        console.log key, 'Low quality', @options.lowQuality
         quality = @options.lowQuality
       else if @avgDiffFrames[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
-        console.log key, "Medium quality", @options.mediumQuality
+        console.log key, 'Medium quality', @options.mediumQuality
         quality = @options.mediumQuality
 
       return quality
 
     ###*
-     * Sample differences on a frame
-     * @param {key} Key of the frame to sample
-     * @param {misMatchPercentage} Percentage of mismatch 
-    ###
-    sampleDiff = (key, misMatchPercentage) =>
-      if not @diffFrames[key]
-        @diffFrames[key] = []
-      # Starting new samples series every 100 frames
-      else if @diffFrames[key].length >= 5
-        console.log "Reset changes"
-        @diffFrames[key].length = 0 
-
-      @diffFrames[key].push misMatchPercentage
-      sum = @diffFrames[key].reduce (t, s) -> t + s
-      @avgDiffFrames[key] = sum/@diffFrames[key].length
-
-    ###*
      * Take a snapshot of each modified part of the screen
     ###
-    snap = =>
-      # timestamp = new Date().getTime()
-      # if @sending
-      #   console.log "dropped frame"
-      #   @frameDropped++
-
-      #   # If dead locked (no response received for the last frame)
-      #   # TODO: Call server to check is alive
-      #   # if timestamp - @timestamp >= 500
-      #   #   console.log "Unlock"
-      #   #   @sending = false
-
-      #   @timestamp = timestamp
-      #   return
-        
+    _snap = =>        
       @ctx.drawImage @video, 0, 0, @options.width, @options.height
 
       if @stream and @stream.writable
         # Sending a Keyframe
         if not @keyFrame
             frame =
-              d: dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
+              d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
               w: @options.width
               h: @options.height
               k: true
@@ -163,19 +132,18 @@ class window.ScreenSharingTransmitter extends Base
                       else
                         @avgDiffFrames[key]++
 
-                    quality = getQuality(key)
+                    quality = _getQuality(key)
 
-                    #sampleDiff(key, diff.misMatchPercentage)
-                    console.log "Mismatch",  @avgDiffFrames[key]
+                    console.log 'Mismatch',  @avgDiffFrames[key]
 
                     if not @sending and (@avgDiffFrames[key] > 0 or quality > lastFrame.quality)
-                      console.log "Compressing at rate", quality, 'vs before', lastFrame.quality
+                      console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
                       
                       if not @sending
                         lastFrame.quality = quality
                         data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
                         framesUpdate.push
-                          d: dataURItoBlob(data)
+                          d: _dataURItoBlob(data)
                           x: xOffset
                           y: yOffset
                           t: new Date().getTime().toString()
@@ -192,8 +160,8 @@ class window.ScreenSharingTransmitter extends Base
                   return false
               return framesUpdate
 
-            #console.log "Stop X", xOffset
-            #console.log "Stop Y", xOffset
+            #console.log 'Stop X', xOffset
+            #console.log 'Stop Y', xOffset
 
             if not @sending and framesUpdate.length and @stream and @stream.writable
               # console.log 'Send frame', framesUpdate
@@ -202,7 +170,7 @@ class window.ScreenSharingTransmitter extends Base
               @framesToSend += framesUpdate.length
               @stream.write framesUpdate
             # @timestamp = timestamp
-      @timer = setTimeout(snap, 10)
+      @timer = setTimeout(_snap, 10)
 
     ###*
      * Convert base64 to raw binary data held in a string.
@@ -210,15 +178,15 @@ class window.ScreenSharingTransmitter extends Base
      * @param {dataURI} ASCII Base64 string to encode
      * @return {ArrayBuffer} ArrayBuffer representing the input string in binary
     ###
-    dataURItoBlob = (dataURI) ->
+    _dataURItoBlob = (dataURI) ->
       byteString = undefined
-      if dataURI.split(",")[0].indexOf("base64") >= 0
-        byteString = atob(dataURI.split(",")[1])
+      if dataURI.split(',')[0].indexOf('base64') >= 0
+        byteString = atob(dataURI.split(',')[1])
       else
-        byteString = unescape(dataURI.split(",")[1])
+        byteString = unescape(dataURI.split(',')[1])
   
       # separate out the mime component
-      mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0]
+      mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
   
       # write the bytes of the string to an ArrayBuffer
       ab = new ArrayBuffer(byteString.length)
@@ -232,29 +200,29 @@ class window.ScreenSharingTransmitter extends Base
       # write the ArrayBuffer to a blob, and you're done
       ab
 
-    createBinaryClient = =>
+    _createBinaryClient = =>
       if not @client
         @client = BinaryClient(@serverUrl)
 
-        @client.on "open", =>
-          console.log "Stream open"
+        @client.on 'open', =>
+          console.log 'Stream open'
           @stream = @client.createStream
             room: @room
-            type: "write"
+            type: 'write'
 
-          @stream.on "data", (data) =>
-            console.log "Received"
+          @stream.on 'data', (data) =>
+            console.log 'Received'
             @framesSent += data
             @sending = false
 
-          @trigger "socketOpen"
+          @trigger 'socketOpen'
 
-        @client.on "close", =>
+        @client.on 'close', =>
           @stop()
           @client = null
-          @trigger "socketClose"
+          @trigger 'socketClose'
 
-    canPlayHandler = =>
+    _canPlayHandler = =>
       @startTime = new Date().getTime()
       @keyFrame = false
       @streaming = true
@@ -287,12 +255,12 @@ class window.ScreenSharingTransmitter extends Base
             return false
           return false
 
-      @timer = setTimeout snap, 0
-      @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 0
+      @timer = setTimeout _snap, 0
+      _processNetworkStatsInterval = setTimeout _processNetworkStats, 0
 
-      createBinaryClient()
+      _createBinaryClient()
 
-      @trigger "canplay"
+      @trigger 'canplay'
 
   start: (e) ->
     # Seems to only work over SSL.
@@ -300,36 +268,36 @@ class window.ScreenSharingTransmitter extends Base
     navigator.getUserMedia
       video:
         mandatory:
-          chromeMediaSource: "screen"
+          chromeMediaSource: 'screen'
       (s) =>
         @streaming = true
         @localStream = s
         @localStream.onended = (e) =>
-          console.log "onended"
-          @trigger "onended"
+          console.log 'onended'
+          @trigger 'onended'
 
         @video.src = window.URL.createObjectURL(@localStream);
         @video.autoplay = true
       (e) =>
-        console.log("Error", e)
-        @trigger "error", {error: e}
+        console.log('Error', e)
+        @trigger 'error', {error: e}
 
-    @video.addEventListener "canplay", canPlayHandler, false
+    @video.addEventListener 'canplay', _canPlayHandler, false
 
   stop: ->
     if @timer and @localStream
       clearInterval @timer
       @timer = false
 
-      clearInterval @calculateNetworkStatsInterval
-      @calculateNetworkStatsInterval = false
+      clearInterval _processNetworkStatsInterval
+      _processNetworkStatsInterval = false
 
       @sending = false
       @streaming = false
       @localStream.stop()
-      @video.removeEventListener "canplay", canPlayHandler
+      @video.removeEventListener 'canplay', _canPlayHandler
       if @client
-        @client.close(10, "")
+        @client.close(10, '')
         @client = null
 
 
