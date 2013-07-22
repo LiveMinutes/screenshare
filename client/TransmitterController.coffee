@@ -85,10 +85,10 @@ class window.ScreenSharingTransmitter extends Base
     _getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
+      if @avgDiffFrames[key] > 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
         console.log key, 'Low quality', @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
+      else if @avgDiffFrames[key] > 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
         console.log key, 'Medium quality', @options.mediumQuality
         quality = @options.mediumQuality
 
