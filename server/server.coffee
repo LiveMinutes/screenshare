@@ -80,7 +80,7 @@ class ScreenSharingServer
                 if not updatedFrames[id]
                   updatedFrames[id] = []
                 console.log 'Updated frame', frame.x, frame.y
-                updatedFrames[id].push frame
+                setTimeout (=> client.write frame), 0
 
             room.frames[key] = frame
             okFrames++
@@ -91,8 +91,8 @@ class ScreenSharingServer
           for client of updatedFrames
             console.log 'Sending updated frames to client', client
             client.lastTimestamp = null
-            if _write room.receivers[client], updatedFrames[client]
-              client.lastTimestamp = null
+            # if _write room.receivers[client], updatedFrames[client]
+            #   client.lastTimestamp = null
         
         room.processFrames = false
 
@@ -135,12 +135,15 @@ class ScreenSharingServer
       timestamp = parseInt(data)
       console.log 'Frames timestamp', timestamp
       updatedFrames = []
+      hasSent = false
       for own key, frame of room.frames
-          updatedFrames.push(frame) if frame.t > timestamp
+        if frame.t > timestamp
+          hasSent = true
+          _write receiver, frame
       
-      if updatedFrames.length
-        console.log 'Sending', updatedFrames.length, 'updated frames since', timestamp
-        _write receiver, updatedFrames
+      if hasSent
+        console.log 'Sending updated frames since', timestamp
+        #_write receiver, updatedFrames
       else
         console.log 'Frame not modified since', data, 'storing timestamp'
         if room.receivers[receiver.screenshareId] 
