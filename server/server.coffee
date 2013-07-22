@@ -16,7 +16,8 @@ class ScreenSharingServer
 
     closeRoom = (roomId) =>
       room = @rooms[roomId]
-      if room.receivers.length is 0 and room.transmitter is null
+      console.log "Close room?", room
+      if Object.keys(room.receivers).length is 0 and room.transmitter is null
         console.log "Closing room", room
         room = null
 
@@ -42,7 +43,7 @@ class ScreenSharingServer
             @rooms[meta.room].transmitter = stream
 
             @rooms[meta.room].transmitter.on "close", =>
-              console.log "Close", @rooms[meta.room].transmitter
+              console.log "Close transmitter", @rooms[meta.room].transmitter
               @rooms[meta.room].transmitter = null
               closeRoom(meta.room)
               
@@ -97,7 +98,7 @@ class ScreenSharingServer
               stream.write @rooms[meta.room].keyFrame
 
             stream.on "close", =>
-              index =
+              console.log "Client close", stream.id
               if @rooms[meta.room].receivers[stream.id]
                 delete @rooms[meta.room].receivers[stream.id]
                 closeRoom(meta.room)
