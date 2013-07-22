@@ -47,11 +47,10 @@ class window.ScreenSharingTransmitter extends Base
     calculateNetworkStats = =>
       if not @hasSent
         @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 1000
+        unless @notSent then @notSent = 0 else @notSent++
         return
 
-      @hasSent = false
-
-      if @sentFrameRate.length >= 10
+      if @sentFrameRate.length >= 5 or @notSent >= 5
         console.log "Reset network"
         @sentFrameRate.length = 0 
       # Calculate sent frames per sec.
@@ -67,6 +66,9 @@ class window.ScreenSharingTransmitter extends Base
       console.log "Sent frames:", ratioSent
       console.log "Avg:", @avgSendFrames
 
+      @hasSent = false
+      @notSent = 0
+
       @calculateNetworkStatsInterval = setTimeout calculateNetworkStats, 1000
 
     ###*
@@ -77,10 +79,10 @@ class window.ScreenSharingTransmitter extends Base
     getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] >= 2 #or @avgSendFrames >= 130 or @avgSendFrames <= 50
+      if @avgDiffFrames[key] >= 2 or @avgSendFrames >= 150 or @avgSendFrames <= 50
         #console.log key, "Low quality", @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] >= 1 #or @avgSendFrames >= 100 or @avgSendFrames <= 75
+      else if @avgDiffFrames[key] >= 1 or @avgSendFrames >= 110 or @avgSendFrames <= 90
         console.log key, "Medium quality", @options.mediumQuality
         quality = @options.mediumQuality
 
