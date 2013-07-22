@@ -50,11 +50,11 @@ class window.ScreenSharingReceiver extends Base
     _draw = (frame, callback) =>
       tileSize = @constructor.TILE_SIZE
       context = @canvasContext
-      
+
       image = new Image()
       image.onload = ->
         context.drawImage this, frame.x*tileSize, frame.y*tileSize, frame.w or tileSize, frame.h or tileSize
-        callback if callback
+        callback() if callback
       image.src = frame.d
 
     _endDrawCallback = =>
@@ -62,6 +62,7 @@ class window.ScreenSharingReceiver extends Base
 
     _getRectangle = () =>
       if @getRectangle
+        setTimeout _getRectangle, 10
         return
       @getRectangle = true
 
@@ -69,6 +70,7 @@ class window.ScreenSharingReceiver extends Base
         @timestamp = -1
 
       @stream.write @timestamp.toString()
+      setTimeout _getRectangle, 0
 
   start: ->
     client = new BinaryClient(@serverUrl)
@@ -83,7 +85,7 @@ class window.ScreenSharingReceiver extends Base
 
         if data
           if data.k
-            setInterval _getRectangle, 500
+            setTimeout _getRectangle, 0
             data.d = "data:image/jpeg;base64," + _arrayBufferToBase64(data.d)
             _drawKeyFrame data
           else if typeof data is 'object' and data.length
