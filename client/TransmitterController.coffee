@@ -10,7 +10,7 @@ class window.ScreenSharingTransmitter extends Base
   ### Defaults options ###
   defaults:
     exportFormat: 'image/jpeg'
-    highQuality: 0.6
+    highQuality: 0.8
     mediumQuality: 0.3
     lowQuality: 0.1
     width: if screen.width <= 1024 then screen.width else 1024
