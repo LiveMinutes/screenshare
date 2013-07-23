@@ -137,6 +137,7 @@ class ScreenSharingServer
       hasSent = false
       for own key, frame of room.frames
         if frame.t > timestamp
+          console.log 'Updated frame', key
           hasSent = true
           _write receiver, frame
       
@@ -189,8 +190,8 @@ class ScreenSharingServer
     _onStream = (stream, meta) =>
       if meta.type
         if meta.room
-          console.log 'Create new room', meta.room
           if not @rooms[meta.room]
+            console.log 'Create new room', meta.room
             @rooms[meta.room] =
               nextId: 0,
               keyFrame: null,
