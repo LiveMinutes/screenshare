@@ -111,7 +111,7 @@ class window.ScreenSharingReceiver extends Base
           setTimeout _getRectangle, 0
           data.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(data.d)
           _drawKeyFrame data
-        else if typeof data is 'object'
+        else if typeof data is 'object' and not data.length
           now = new Date().getTime()
           frame = data
           # for frame in data
@@ -121,9 +121,10 @@ class window.ScreenSharingReceiver extends Base
           console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
 
           frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
-          @timestamp = frame.t unless frame.t < @timestamp
-          
-          _draw data, _endDrawCallback
+
+          if frame.t > @timestamp
+            @timestamp = frame.t unless frame.t < @timestamp
+            _draw data, _endDrawCallback
         else
           _endDrawCallback()
 
