@@ -104,17 +104,15 @@ class window.ScreenSharingReceiver extends Base
       @stream.write @timestamp.toString()
       setTimeout _getRectangle, 0
 
-    _onDataHandler = (data) =>
-      #console.log data
-      if data
-        if data.k
+    _onDataHandler = (frame) =>
+      #console.log frame
+      if frame
+        if frame.k
           setTimeout _getRectangle, 0
-          data.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(data.d)
-          _drawKeyFrame data
-        else if typeof data is 'object' and not data.length
+          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+          _drawKeyFrame frame
+        else if typeof frame is 'object' and not frame.length
           now = new Date().getTime()
-          frame = data
-          # for frame in data
           frame.t = parseInt(frame.t)
           frame.ts = parseInt(frame.t)
           console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
@@ -124,7 +122,7 @@ class window.ScreenSharingReceiver extends Base
 
           if frame.t > @timestamp
             @timestamp = frame.t unless frame.t < @timestamp
-            _draw data, _endDrawCallback
+            _draw frame, _endDrawCallback
         else
           _endDrawCallback()
 

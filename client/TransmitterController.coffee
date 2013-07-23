@@ -3,6 +3,7 @@ class window.ScreenSharingTransmitter extends Base
   _snap = null
   _dataURItoBlob = null
   _canPlayHandler = null
+  _snapInterval = null
   _processNetworkStatsInterval = null
   _processNetworkStats = null
   _getQuality = null
@@ -30,19 +31,18 @@ class window.ScreenSharingTransmitter extends Base
     @streaming = false
     @sending = 0
     @lastFrames = {}
-    @frameDropped = 0
-
     @sentFrameRate = []
-
-    @diffFrames = {}
-    @avgDiffFrames = {}
+    @mismatchesCount = {}
 
     @cvs = document.createElement 'canvas'
     @ctx = @cvs.getContext '2d'
     @video = document.createElement 'video'
 
+    ###*
+    * Detect if a screen is static
+    ###
     _processStatic = =>
-      @avgSendFrames = 0 if not @sending and not @hasSent
+      @avgSendFrames = 0 if @sending is 0 and not @hasSent
       _processStaticInterval = setTimeout _processStatic, 50
 
     ###*
@@ -50,7 +50,6 @@ class window.ScreenSharingTransmitter extends Base
     ###
     _processNetworkStats = =>
       if not @hasSent
-        #unless @notSent? then @notSent = 0 else @notSent++
         _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
         return
 
@@ -85,10 +84,10 @@ class window.ScreenSharingTransmitter extends Base
     _getQuality = (key) =>
       quality = @options.highQuality
 
-      if @avgDiffFrames[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
+      if @mismatchesCount[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
         console.log key, 'Low quality', @options.lowQuality
         quality = @options.lowQuality
-      else if @avgDiffFrames[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
+      else if @mismatchesCount[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
         console.log key, 'Medium quality', @options.mediumQuality
         quality = @options.mediumQuality
 
@@ -108,6 +107,7 @@ class window.ScreenSharingTransmitter extends Base
               w: @options.width
               h: @options.height
               k: true
+
             console.log 'Send keyframe', frame
             @sending++
             @stream.write frame
@@ -116,72 +116,60 @@ class window.ScreenSharingTransmitter extends Base
         else
           do () =>
             framesToSend = 0
-            framesUpdate = do () =>
-              framesUpdate = []
+            xOffset = 0
+            yOffset = 0
+            
+            stop = false
+            while not stop
+              stop = do () =>
+                key = xOffset.toString() + yOffset.toString()
               
-              xOffset = 0
-              yOffset = 0
-              
-              stop = false
-              while not stop
-                stop = do () =>
-                  key = xOffset.toString() + yOffset.toString()
-                
-                  lastFrame = @lastFrames[key]
-                  newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
+                lastFrame = @lastFrames[key]
+                newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
-                  if lastFrame and lastFrame.data
-                    equal = imagediff.equal(newFrame, lastFrame.data)
-                    if not equal
-                      lastFrame.data = newFrame
-                      unless @avgDiffFrames[key]?
-                        @avgDiffFrames[key] = 0
-                      else
-                        @avgDiffFrames[key]++
+                if lastFrame and lastFrame.data
+                  equal = imagediff.equal(newFrame, lastFrame.data)
+                  if not equal
+                    lastFrame.data = newFrame
+                    unless @mismatchesCount[key]?
+                      @mismatchesCount[key] = 0
+                    else
+                      @mismatchesCount[key]++
 
-                    quality = _getQuality(key)
+                  quality = _getQuality(key)
 
-                    console.log 'Mismatch',  @avgDiffFrames[key]
+                  console.log 'Mismatch',  @mismatchesCount[key]
 
-                    if @sending is 0 and (@avgDiffFrames[key] > 0 or quality > lastFrame.quality)
-                      console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
-                      
-                      lastFrame.quality = quality
-                      data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
-                      frame = 
-                        d: _dataURItoBlob(data)
-                        x: xOffset
-                        y: yOffset
-                        t: new Date().getTime().toString()
-                       
-                      framesToSend++
-                      @stream.write frame
-                      @avgDiffFrames[key] = 0
+                  if @sending is 0 and (@mismatchesCount[key] > 0 or quality > lastFrame.quality)
+                    console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
                     
-                  xOffset++
-                  if @options.width - xOffset * @constructor.TILE_SIZE <= 0
-                    xOffset = 0
-                    yOffset++
-                    if @options.height - yOffset * @constructor.TILE_SIZE <= 0
-                      yOffset = 0
-                      return true
-                    return false
+                    lastFrame.quality = quality
+                    data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
+                    frame = 
+                      d: _dataURItoBlob(data)
+                      x: xOffset
+                      y: yOffset
+                      t: new Date().getTime().toString()
+                     
+                    framesToSend++
+                    @stream.write frame
+                    @mismatchesCount[key] = 0
+                  
+                xOffset++
+                if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+                  xOffset = 0
+                  yOffset++
+                  if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+                    yOffset = 0
+                    return true
                   return false
-              return framesUpdate
+                return false
 
-            #console.log 'Stop X', xOffset
-            #console.log 'Stop Y', xOffset
             @sending = framesToSend
+            @hasSent = framesToSend > 0
             @framesToSend += framesToSend
-            @hasSent = framesToSend > 0 and @stream and @stream.writable
-            # if not @sending and framesUpdate.length and @stream and @stream.writable
-            #   # console.log 'Send frame', framesUpdate
-            #   @sending = true    
-            #   @hasSent = true
-            #   @framesToSend += framesUpdate.length
-            #   @stream.write framesUpdate
-            # @timestamp = timestamp
-      @timer = setTimeout(_snap, 10)
+
+      _snapInterval = setTimeout _snap, 10
 
     ###*
      * Convert base64 to raw binary data held in a string.
@@ -222,10 +210,10 @@ class window.ScreenSharingTransmitter extends Base
             type: 'write'
 
           @stream.on 'data', (data) =>
-            if data is 1
+            if data
               console.log 'Received'
-              @framesSent++
-              @sending--
+              @framesSent += data
+              @sending -= data
 
           @trigger 'socketOpen'
 
@@ -257,6 +245,7 @@ class window.ScreenSharingTransmitter extends Base
         
           @lastFrames[key] = 
             data: @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
+          
           xOffset++
           if @options.width - xOffset * @constructor.TILE_SIZE <= 0
             xOffset = 0
@@ -267,7 +256,7 @@ class window.ScreenSharingTransmitter extends Base
             return false
           return false
 
-      @timer = setTimeout _snap, 0
+      _snapInterval = setTimeout _snap, 0
       _processNetworkStatsInterval = setTimeout _processNetworkStats, 0
       _processStaticInterval = setTimeout _processStatic, 0
 
@@ -299,18 +288,22 @@ class window.ScreenSharingTransmitter extends Base
 
   stop: ->
     if @timer and @localStream
-      clearInterval @timer
-      @timer = false
+      clearInterval _snapInterval
+      _snapInterval = false
 
       clearInterval _processNetworkStatsInterval
       _processNetworkStatsInterval = false
+
+      clearInterval _processStaticInterval
+      _processStaticInterval = false
 
       @sending = 0
       @streaming = false
       @localStream.stop()
       @video.removeEventListener 'canplay', _canPlayHandler
+      
       if @client
-        @client.close(10, '')
+        @client.close()
         @client = null
 
 
