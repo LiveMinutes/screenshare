@@ -172,7 +172,8 @@ class window.ScreenSharingTransmitter extends Base
             #console.log 'Stop X', xOffset
             #console.log 'Stop Y', xOffset
             @sending = framesToSend
-            @hasSent = @framesToSend > 0 and @stream and @stream.writable
+            @framesToSend += framesToSend
+            @hasSent = framesToSend > 0 and @stream and @stream.writable
             # if not @sending and framesUpdate.length and @stream and @stream.writable
             #   # console.log 'Send frame', framesUpdate
             #   @sending = true    
