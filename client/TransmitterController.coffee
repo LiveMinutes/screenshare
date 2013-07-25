@@ -7,6 +7,8 @@ class window.ScreenSharingTransmitter extends Base
   _processNetworkStatsInterval = null
   _processNetworkStats = null
   _getQuality = null
+  _equal = null
+  _export = null
 
   ### Defaults options ###
   defaults:
@@ -78,7 +80,7 @@ class window.ScreenSharingTransmitter extends Base
 
     ###*
      * Return the correct quality regarding network quality and screen activity
-     * @param {key} Key of the frame to sample
+     * @param {key} Frame's key
      * @return The correct quality
     ###
     _getQuality = (key) =>
@@ -92,6 +94,40 @@ class window.ScreenSharingTransmitter extends Base
         quality = @options.mediumQuality
 
       return quality
+
+    ###*
+     * Test equality between two frames
+     * @param {a} First frame
+     * @param {b} Second frame
+     * @param {tolerance} Tolerance gap
+     * @return True if equal, false otherwise
+    ###
+    _equal = (a, b, tolerance) ->
+      aData = a.data
+      bData = b.data
+      length = aData.length
+      i = undefined
+      tolerance = tolerance or 0
+
+      i = length
+      while i--
+        return false  if aData[i] isnt bData[i] and Math.abs(aData[i] - bData[i]) > tolerance
+      true
+
+    ###*
+     * Export a frame
+     * @param {data} Raw image data
+     * @param {format} Export format
+     * @param {quality} Export quality
+     * @return Base64 exported String
+    ###
+    _export = (data, format, quality) ->
+      canvas = document.createElement 'canvas'
+      canvas.width = data.width
+      canvas.height = data.height
+      context = canvas.getContext("2d")
+      context.putImageData data, 0, 0
+      canvas.toDataURL format, quality
 
     ###*
      * Take a snapshot of each modified part of the screen
@@ -128,7 +164,7 @@ class window.ScreenSharingTransmitter extends Base
                 newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
                 if lastFrame and lastFrame.data
-                  equal = imagediff.equal(newFrame, lastFrame.data)
+                  equal = _equal(newFrame, lastFrame.data)
                   if not equal
                     lastFrame.data = newFrame
                     unless @mismatchesCount[key]?
@@ -144,7 +180,7 @@ class window.ScreenSharingTransmitter extends Base
                     console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
                     
                     lastFrame.quality = quality
-                    data = imagediff.toCanvas(newFrame).toDataURL @options.exportFormat, quality
+                    data = _export newFrame, @options.exportFormat, quality
                     frame = 
                       d: _dataURItoBlob(data)
                       x: xOffset
