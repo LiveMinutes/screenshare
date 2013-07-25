@@ -323,7 +323,7 @@ class window.ScreenSharingTransmitter extends Base
     @video.addEventListener 'canplay', _canPlayHandler, false
 
   stop: ->
-    if @timer and @localStream
+    if _snapInterval and @localStream
       clearInterval _snapInterval
       _snapInterval = false
 
