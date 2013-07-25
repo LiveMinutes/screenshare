@@ -255,7 +255,6 @@ class window.ScreenSharingTransmitter extends Base
 
         @client.on 'close', =>
           @stop()
-          @client = null
           @trigger 'socketClose'
 
     _canPlayHandler = =>
@@ -341,6 +340,7 @@ class window.ScreenSharingTransmitter extends Base
       if @client
         @client.close()
         @client = null
+        @stream = null
 
 
 

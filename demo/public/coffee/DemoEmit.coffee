@@ -1,35 +1,39 @@
 class window.DemoEmit
-  start = null
-  stop = null
-  showErrorMsg = null
+  _start = null
+  _stop = null
+  _socketOpenHandler = null
+  _socketCloseHandler = null
+  _showErrorMsg = null
 
   constructor: (serverUrl, room, button, container, error) ->
-    showErrorMsg = (msg) =>
+    _showErrorMsg = (msg) =>
       @error.textContent = msg
-      @error.classList.add "show"
+      @error.classList.add 'show'
 
-    canPlayHandler = =>
-      @container.appendChild @transmitter.cvs
+    _socketOpenHandler = =>
+      @button.textContent = 'Stop'
+      @button.removeEventListener 'click', _start
+      @button.addEventListener 'click', _stop
+      @container.innerHTML = ''
 
-    start= =>
-      @button.textContent = "Stop"
-      @button.removeEventListener "click", start
-      @button.addEventListener "click", stop
-      @container.innerHTML = ""
+    _socketCloseHandler = =>
+      stop()
 
-      # @transmitter.on "canplay", canPlayHandler
-
+    _start= =>
+      @transmitter.on 'socketOpen', _socketOpenHandler
+      @transmitter.on 'socketClose', _socketCloseHandler
       @transmitter.start()
 
-    stop= =>
-      @button.removeEventListener "click", stop
-      @button.addEventListener "click", start
-      @button.textContent = "Capture your screen"
-      @transmitter.off "canplay", canPlayHandler
+    _stop= =>
+      @button.removeEventListener 'click', _stop
+      @button.addEventListener 'click', _start
+      @button.textContent = 'Capture your screen'
+      @transmitter.off 'socketOpen', _socketOpenHandler
+      @transmitter.off 'socketClose', _socketCloseHandler
       @transmitter.stop()
 
     @transmitter = new ScreenSharingTransmitter serverUrl, room
     @button = button
     @container = container
     @error = error
-    @button.addEventListener "click", start
+    @button.addEventListener 'click', _start
