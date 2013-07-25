@@ -1,5 +1,6 @@
 class window.ScreenSharingReceiver extends Base
   ### Private members ###
+  _init = null
   _drawKeyFrame = null
   _drawDiff = null
   _draw = null
@@ -19,11 +20,15 @@ class window.ScreenSharingReceiver extends Base
     @room = room
     @canvas = canvas
 
-    @xOffset = 0
-    @yOffset = 0
-    @canvasContext = canvas.getContext '2d'
+    _init = =>
+      @getRectangle = false
+      @client = null
+      @stream = null
+      @xOffset = 0
+      @yOffset = 0
+      @canvasContext = canvas.getContext '2d'
 
-    @frames = {}
+      @frames = {}
 
     ###*
      * Decode a binary base64 arraybuffer to a Base64 string
@@ -126,20 +131,23 @@ class window.ScreenSharingReceiver extends Base
         else
           _endDrawCallback()
 
+    _init()
+
     ###
     * Create the WS binary client
     ###
     _createClient = =>
-      client = new BinaryClient(@serverUrl)
+      @client = new BinaryClient(@serverUrl)
 
-      client.on 'open', =>
-        @stream = client.createStream
+      @client.on 'open', =>
+        @stream = @client.createStream
           room: @room
           type: 'read'
 
         @stream.on 'data', _onDataHandler
+        @trigger 'open'
           
-      client.on 'error', (e) =>
+      @client.on 'error', (e) =>
         console.log 'error', e
         @trigger 'error'
 
@@ -148,6 +156,15 @@ class window.ScreenSharingReceiver extends Base
   ###
   start: ->
     _createClient()
+    @trigger 'start'
+
+  ###*
+  * Start the receiver, connect to the server
+  ###
+  stop: ->
+    @client.close() if @client
+    _init()
+    @trigger 'stop'
     
 
 
