@@ -12,15 +12,7 @@ class window.DemoReceive extends Base
 		_firstKeyframeHandler = =>
 			@canvas.style.display = "block";
 
-		_start= =>	
-			@button.textContent = 'Leave session'
-			@button.removeEventListener 'click', _start
-			@button.addEventListener 'click', _stop
-
-			@receiver.on 'firstKeyframe', _firstKeyframeHandler
-			@receiver.start()
-
-		_stop= =>
+		_endHandler = =>
 			@button.removeEventListener 'click', _stop
 			@button.addEventListener 'click', _start
 			@button.textContent = 'Join session'
@@ -28,6 +20,20 @@ class window.DemoReceive extends Base
 			@canvas.style.display = "none";
 
 			@receiver.off 'firstKeyframe', _firstKeyframeHandler
+
+
+		_start= =>	
+			@button.textContent = 'Leave session'
+			@button.removeEventListener 'click', _start
+			@button.addEventListener 'click', _stop
+
+			@receiver.on 'firstKeyframe', _firstKeyframeHandler
+			@receiver.on 'error', _endHandler
+			@receiver.on 'close', _endHandler
+			@receiver.start()
+
+		_stop= =>
+			_endHandler()
 			@receiver.stop()
 
 		@button.addEventListener 'click', _start

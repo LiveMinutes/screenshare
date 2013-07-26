@@ -21,6 +21,7 @@ class window.ScreenSharingReceiver extends Base
     @canvas = canvas
 
     _init = =>
+      @started = false
       @getRectangle = false
       @client = null
       @stream = null
@@ -98,7 +99,7 @@ class window.ScreenSharingReceiver extends Base
     * Ask to the server if new rectangles are available
     ###
     _getRectangle = =>
-      if @getRectangle
+      if @getRectangle and @started
         setTimeout _getRectangle, 10
         return
       @getRectangle = true
@@ -106,12 +107,13 @@ class window.ScreenSharingReceiver extends Base
       if not @timestamp
         @timestamp = -1
 
-      @stream.write @timestamp.toString()
-      setTimeout _getRectangle, 0
+      if @stream and @stream.writable
+        @stream.write @timestamp.toString()
+        setTimeout _getRectangle, 0
 
     _onDataHandler = (frame) =>
       #console.log frame
-      if frame
+      if frame and @started
         if frame.k
           setTimeout _getRectangle, 0
           frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
@@ -148,16 +150,34 @@ class window.ScreenSharingReceiver extends Base
           type: 'read'
 
         @stream.on 'data', _onDataHandler
-        @trigger 'open'
+
+        @stream.on 'close', =>
+          @stop()
+          @trigger 'streamClose'
+
+        @stream.on 'error', =>
+          @stop()
+          @trigger 'error'
           
+        @trigger 'open'
+
       @client.on 'error', (e) =>
         console.log 'error', e
+        @stop()
         @trigger 'error'
+
+      @client.on 'close', =>
+        @stop()
+        @trigger 'clientClose'
 
   ###*
   * Start the receiver, connect to the server
   ###
   start: ->
+    if @started
+      return
+    @started = true
+
     _createClient()
     @trigger 'start'
 
@@ -165,6 +185,10 @@ class window.ScreenSharingReceiver extends Base
   * Start the receiver, connect to the server
   ###
   stop: ->
+    if not @started
+      return
+    @started = false
+
     @client.close() if @client
     _init()
     @trigger 'stop'
