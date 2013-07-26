@@ -112,8 +112,10 @@ class window.ScreenSharingReceiver extends Base
         setTimeout _getRectangle, 0
 
     _onDataHandler = (frame) =>
-      #console.log frame
-      if frame and @started
+      console.log frame
+      if frame? and @started
+        if frame is 0
+          @trigger 'transmitterLeft'
         if frame.k
           setTimeout _getRectangle, 0
           frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
