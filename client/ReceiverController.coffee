@@ -50,7 +50,7 @@ class window.ScreenSharingReceiver extends Base
     * Draw a key frame on the canvas
     * @param {keyFrame} The key frame to draw
     ###
-    _drawKeyFrame = (keyFrame) =>
+    _drawKeyFrame = (keyFrame, callback) =>
       if keyFrame.k
         width = keyFrame.w
         height = keyFrame.h
@@ -60,7 +60,7 @@ class window.ScreenSharingReceiver extends Base
           @canvas.height = height
 
         keyFrame.x = keyFrame.y = 0
-        _draw keyFrame, _endDrawCallback
+        _draw keyFrame, callback or _endDrawCallback
 
     ###*
     * Draw a set of frames on the canvas
@@ -115,7 +115,10 @@ class window.ScreenSharingReceiver extends Base
         if frame.k
           setTimeout _getRectangle, 0
           frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
-          _drawKeyFrame frame
+          _drawKeyFrame frame, (=> 
+            _endDrawCallback()
+            @trigger 'firstKeyframe'
+            )
         else if typeof frame is 'object' and not frame.length
           now = new Date().getTime()
           frame.t = parseInt(frame.t)

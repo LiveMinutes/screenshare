@@ -9,7 +9,7 @@ class window.DemoReceive extends Base
 		@canvas = canvas
 		@canvas.style.display = "none";
 
-		_openHandler = =>
+		_firstKeyframeHandler = =>
 			@canvas.style.display = "block";
 
 		_start= =>	
@@ -17,7 +17,7 @@ class window.DemoReceive extends Base
 			@button.removeEventListener 'click', _start
 			@button.addEventListener 'click', _stop
 
-			@receiver.on 'open', _openHandler
+			@receiver.on 'firstKeyframe', _firstKeyframeHandler
 			@receiver.start()
 
 		_stop= =>
@@ -27,6 +27,7 @@ class window.DemoReceive extends Base
 
 			@canvas.style.display = "none";
 
+			@receiver.off 'firstKeyframe', _firstKeyframeHandler
 			@receiver.stop()
 
 		@button.addEventListener 'click', _start
