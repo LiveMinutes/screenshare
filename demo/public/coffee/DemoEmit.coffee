@@ -20,16 +20,18 @@ class window.DemoEmit
       stop()
 
     _start= =>
-      @transmitter.on 'socketOpen', _socketOpenHandler
-      @transmitter.on 'socketClose', _socketCloseHandler
+      @transmitter.on 'open', _socketOpenHandler
+      @transmitter.on 'close', _socketCloseHandler
+      @transmitter.on 'error', _socketCloseHandler
       @transmitter.start()
 
     _stop= =>
       @button.removeEventListener 'click', _stop
       @button.addEventListener 'click', _start
       @button.textContent = 'Capture your screen'
-      @transmitter.off 'socketOpen', _socketOpenHandler
-      @transmitter.off 'socketClose', _socketCloseHandler
+      @transmitter.off 'open', _socketOpenHandler
+      @transmitter.off 'close', _socketCloseHandler
+      @transmitter.on 'error', _socketCloseHandler
       @transmitter.stop()
 
     @transmitter = new ScreenSharingTransmitter serverUrl, room

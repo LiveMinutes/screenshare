@@ -251,11 +251,19 @@ class window.ScreenSharingTransmitter extends Base
               @framesSent += data
               @sending -= data
 
-          @trigger 'socketOpen'
+          @stream.on 'error', (e) =>
+            @stop()
+            @trigger 'error', e
+
+          @trigger 'open'
 
         @client.on 'close', =>
           @stop()
-          @trigger 'socketClose'
+          @trigger 'close'
+
+        @client.on 'error', (e) =>
+          @stop()
+          @trigger 'error', e
 
     _canPlayHandler = =>
       @startTime = new Date().getTime()
@@ -317,7 +325,7 @@ class window.ScreenSharingTransmitter extends Base
         @video.autoplay = true
       (e) =>
         console.log('Error', e)
-        @trigger 'error', {error: e}
+        @trigger 'error', e
 
     @video.addEventListener 'canplay', _canPlayHandler, false
 

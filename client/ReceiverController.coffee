@@ -153,22 +153,22 @@ class window.ScreenSharingReceiver extends Base
 
         @stream.on 'close', =>
           @stop()
-          @trigger 'streamClose'
+          @trigger 'close'
 
-        @stream.on 'error', =>
+        @stream.on 'error', (e) =>
           @stop()
-          @trigger 'error'
+          @trigger 'error', e
           
         @trigger 'open'
 
       @client.on 'error', (e) =>
         console.log 'error', e
         @stop()
-        @trigger 'error'
+        @trigger 'error', e
 
       @client.on 'close', =>
         @stop()
-        @trigger 'clientClose'
+        @trigger 'close'
 
   ###*
   * Start the receiver, connect to the server
