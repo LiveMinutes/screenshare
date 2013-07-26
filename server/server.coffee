@@ -165,7 +165,7 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
       if receiver and receiver.screenshareId
-        'Remove receiver', receiver.screenshareId, 'in room', roomId
+        console.log 'Remove receiver', receiver.screenshareId, 'in room', roomId
         delete room.receivers[receiver.screenshareId]
         _closeRoom(roomId)
 
