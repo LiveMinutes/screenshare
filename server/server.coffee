@@ -37,14 +37,17 @@ class ScreenSharingServer
       room = @rooms[roomId]
       console.log 'Close room?', roomId
 
-      countReceivers = Object.keys(room.receivers).length
-      leftTransmitter = room.transmitter is null
-      console.log 'Left transmitter?', leftTransmitter
-      console.log 'Left receivers: ', countReceivers
+      if room
+        countReceivers = Object.keys(room.receivers).length
+        leftTransmitter = room.transmitter is null
+        console.log 'Left transmitter?', leftTransmitter
+        console.log 'Left receivers: ', countReceivers
 
-      if countReceivers is 0 and leftTransmitter
-        console.log 'Closing room', roomId
-        room = null
+        if countReceivers is 0 and leftTransmitter
+          console.log 'Closing room', roomId
+          delete @rooms[roomId]
+      else
+        console.error 'Room', roomId, 'does not exist'
 
     ###*
     * Handler when transmitter emit data
