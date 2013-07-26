@@ -329,8 +329,9 @@ class window.ScreenSharingTransmitter extends Base
         @streaming = true
         @localStream = s
         @localStream.onended = (e) =>
-          console.log 'onended'
-          @trigger 'onended'
+          if @started
+            console.log 'onended'
+            @trigger 'onended'
 
         @video.src = window.URL.createObjectURL(@localStream);
         @video.autoplay = true
