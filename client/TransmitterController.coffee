@@ -255,11 +255,17 @@ class window.ScreenSharingTransmitter extends Base
             @stop()
             @trigger 'error', e
 
+          @stream.on 'close', =>
+            if @started
+              @stop()
+              @trigger 'close'
+
           @trigger 'open'
 
         @client.on 'close', =>
-          @stop()
-          @trigger 'close'
+          if @started
+            @stop()
+            @trigger 'close'
 
         @client.on 'error', (e) =>
           @stop()
@@ -308,6 +314,11 @@ class window.ScreenSharingTransmitter extends Base
       @trigger 'canplay'
 
   start: (e) ->
+    if @started
+      return
+
+    @started = true    
+
     # Seems to only work over SSL.
     navigator.getUserMedia = navigator.webkitGetUserMedia or navigator.getUserMedia
     navigator.getUserMedia
@@ -330,6 +341,11 @@ class window.ScreenSharingTransmitter extends Base
     @video.addEventListener 'canplay', _canPlayHandler, false
 
   stop: ->
+    if not @started
+      return
+
+    @started = false
+
     if _snapInterval and @localStream
       clearInterval _snapInterval
       _snapInterval = false

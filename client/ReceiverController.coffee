@@ -152,8 +152,9 @@ class window.ScreenSharingReceiver extends Base
         @stream.on 'data', _onDataHandler
 
         @stream.on 'close', =>
-          @stop()
-          @trigger 'close'
+          if @started
+            @stop()
+            @trigger 'close'
 
         @stream.on 'error', (e) =>
           @stop()
@@ -167,8 +168,9 @@ class window.ScreenSharingReceiver extends Base
         @trigger 'error', e
 
       @client.on 'close', =>
-        @stop()
-        @trigger 'close'
+        if @started
+          @stop()
+          @trigger 'close'
 
   ###*
   * Start the receiver, connect to the server
