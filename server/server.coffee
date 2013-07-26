@@ -36,7 +36,13 @@ class ScreenSharingServer
     _closeRoom = (roomId) =>
       room = @rooms[roomId]
       console.log 'Close room?', roomId
-      if Object.keys(room.receivers).length is 0 and room.transmitter is null
+
+      countReceivers = Object.keys(room.receivers).length
+      leftTransmitter = room.transmitter is null
+      console.log 'Left transmitter?', leftTransmitter
+      console.log 'Left receivers: ', countReceivers
+
+      if countReceivers is 0 and leftTransmitter
         console.log 'Closing room', roomId
         room = null
 
@@ -159,6 +165,7 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
       if receiver and receiver.screenshareId
+        'Remove receiver', receiver.screenshareId, 'in room', roomId
         delete room.receivers[receiver.screenshareId]
         _closeRoom(roomId)
 
