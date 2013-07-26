@@ -21,6 +21,8 @@ class window.DemoReceive extends Base
 
 			@receiver.off 'firstKeyframe', _firstKeyframeHandler
 
+		_transmitterLeftHandler = =>
+			console.log "Transmitter has left"
 
 		_start= =>	
 			@button.textContent = 'Leave session'
@@ -28,6 +30,7 @@ class window.DemoReceive extends Base
 			@button.addEventListener 'click', _stop
 
 			@receiver.on 'firstKeyframe', _firstKeyframeHandler
+			@receiver.on 'transmitterLeft', _transmitterLeftHandler
 			@receiver.on 'error', _endHandler
 			@receiver.on 'close', _endHandler
 			@receiver.start()

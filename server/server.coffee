@@ -46,6 +46,9 @@ class ScreenSharingServer
         if countReceivers is 0 and leftTransmitter
           console.log 'Closing room', roomId
           delete @rooms[roomId]
+          return true
+        else
+          return false
       else
         console.error 'Room', roomId, 'does not exist'
 
@@ -112,7 +115,11 @@ class ScreenSharingServer
       console.log 'Transmitter closed of room', roomId
 
       @rooms[roomId].transmitter = null
-      _closeRoom(roomId)
+      if not _closeRoom(roomId)
+        for id, client of @rooms[roomId].receivers
+          # Signal to each client that transmitter has left
+          console.log 'Sending transmitter left signal to', client.screenshareId
+          _write client, 0
 
     ###
     * Set a room transmitter
