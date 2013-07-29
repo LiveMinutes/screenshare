@@ -178,7 +178,7 @@ class window.ScreenSharingTransmitter extends Base
                   if not equal
                     lastFrame.data = newFrame
                     unless @mismatchesCount[key]?
-                      @mismatchesCount[key] = 0
+                      @mismatchesCount[key] = 1
                     else
                       @mismatchesCount[key]++
 
