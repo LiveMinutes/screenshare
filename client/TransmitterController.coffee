@@ -145,19 +145,31 @@ class window.ScreenSharingTransmitter extends Base
     _snap = =>        
       @ctx.drawImage @video, 0, 0, @options.width, @options.height
 
-      if @stream and @stream.writable
+      if @stream and @stream.writable and (not @sending or @keyFrame)
         # Sending a Keyframe
-        if not @keyFrame
-            frame =
-              d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, @options.compression)
-              w: @options.width
-              h: @options.height
-              k: true
+        if @keyFrame
+          keyFramequality = _getQuality()
+        else 
+          keyFramequality = @options.lowQuality
+          
+        if not @keyFrame or keyFramequality > @keyFrame.quality
+          @keyFrame = 
+            data: @ctx.getImageData 0, 0, @options.width, @options.height
+            quality: keyFramequality
 
-            console.log 'Send keyframe', frame
-            @sending++
-            @stream.write frame
-            @keyFrame = true
+          keyFrame =
+            k: true
+            d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, keyFramequality)
+            w: @options.width
+            h: @options.height
+            t: new Date().getTime().toString()
+
+          @mismatchesCount = {}
+          console.log 'Send keyframe', keyFrame
+          @sending++
+          @hasSent = true
+          @framesToSend++
+          @stream.write keyFrame
         # Sending diff frames
         else
           do () =>
@@ -165,55 +177,72 @@ class window.ScreenSharingTransmitter extends Base
             xOffset = 0
             yOffset = 0
             
-            stop = false
-            while not stop
-              stop = do () =>
-                key = xOffset.toString() + yOffset.toString()
-              
-                lastFrame = @lastFrames[key]
-                newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
+            framesUpdates = do () =>
+              framesUpdates = []
+              stop = false
+              while not stop
+                stop = do () =>
+                  key = xOffset.toString() + yOffset.toString()
+                
+                  lastFrame = @lastFrames[key]
+                  newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
-                if lastFrame and lastFrame.data
-                  equal = _equal(newFrame, lastFrame.data)
-                  if not equal
-                    lastFrame.data = newFrame
-                    unless @mismatchesCount[key]?
-                      @mismatchesCount[key] = 1
-                    else
-                      @mismatchesCount[key]++
+                  if lastFrame and lastFrame.data
+                    equal = _equal(newFrame, lastFrame.data)
+                    if not equal
+                      lastFrame.data = newFrame
+                      unless @mismatchesCount[key]?
+                        @mismatchesCount[key] = 1
+                      else
+                        @mismatchesCount[key]++
 
-                  quality = _getQuality(key)
+                        mismatchesCount = 0
+                        for key, mismatchesCountKey of @mismatchesCount 
+                          if mismatchesCountKey >= 1
+                            mismatchesCount++
 
-                  console.log 'Mismatch',  @mismatchesCount[key]
+                        if mismatchesCount >= @gridSize * 0.8
+                          console.log 'Total mismatches', mismatchesCount
+                          @mismatchesCount = {}
+                          @keyFrame = null 
+                          return true
 
-                  if @sending is 0 and (@mismatchesCount[key] > 0 or quality > lastFrame.quality)
-                    console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
-                    
-                    lastFrame.quality = quality
-                    data = _export newFrame, @options.exportFormat, quality
-                    frame = 
-                      d: _dataURItoBlob(data)
-                      x: xOffset
-                      y: yOffset
-                      t: new Date().getTime().toString()
-                     
-                    framesToSend++
-                    @stream.write frame
-                    @mismatchesCount[key] = 0
-                  
-                xOffset++
-                if @options.width - xOffset * @constructor.TILE_SIZE <= 0
-                  xOffset = 0
-                  yOffset++
-                  if @options.height - yOffset * @constructor.TILE_SIZE <= 0
-                    yOffset = 0
-                    return true
+                    quality = _getQuality(key)
+
+                    console.log 'Mismatch',  @mismatchesCount[key]
+
+                    if not @sending and (@mismatchesCount[key] > 0 or quality > lastFrame.quality)
+                      console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
+                      
+                      lastFrame.quality = quality
+                      data = _export newFrame, @options.exportFormat, quality
+                      framesUpdates.push
+                        d: _dataURItoBlob(data)
+                        x: xOffset
+                        y: yOffset
+                       
+                  xOffset++
+                  if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+                    xOffset = 0
+                    yOffset++
+                    if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+                      yOffset = 0
+                      return true
+                    return false
                   return false
-                return false
 
-            @sending = framesToSend
-            @hasSent = framesToSend > 0
-            @framesToSend += framesToSend
+              return framesUpdates
+
+            if @keyFrame and not @sending
+              console.debug "Sending diff"
+              for frame in framesUpdates
+                key = frame.x.toString() + frame.y.toString()
+                @mismatchesCount[key] = 0
+                frame.t = new Date().getTime().toString()
+                @sending++
+                @hasSent = true
+                @framesToSend++
+                @stream.write frame
 
       _snapInterval = setTimeout _snap, 10
 
