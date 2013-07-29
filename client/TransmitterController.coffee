@@ -292,6 +292,8 @@ class window.ScreenSharingTransmitter extends Base
       @cvs.setAttribute 'width', @options.width
       @cvs.setAttribute 'height', @options.height
 
+      @gridSize = Math.round(@options.width / @constructor.TILE_SIZE) * Math.round(@options.height / @constructor.TILE_SIZE)
+
       @framesSent = 0
       @framesToSend = 0
 
