@@ -6,8 +6,5 @@
     "grunt": "~0.4.1",
     "grunt-hub": "~0.5.0",
     "grunt-shell": "~0.3.1"
-  },
-  "dependencies": {
-    "forever": "~0.10.8"
   }
 }
