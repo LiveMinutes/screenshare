@@ -29,6 +29,27 @@ class ScreenSharingServer
         console.error 'Stream', stream.screenshareId, 'not writable'
         return false
 
+    _processPendingRequests = (roomId) =>
+      room = @rooms[roomId]
+
+      if room
+        #console.log "Process pending requests of room", roomId
+        for clientId, client of room.receivers
+          if @updatedKeyFrame
+            if _write client, room.keyFrame
+                @updatedKeyFrame = false 
+                client.lastTimestamp = null
+                
+          for key, lastTimestamp of client.lastTimestamp
+            if room.frames? and key of room.frames and room.frames[key]? and lastTimestamp? and parseInt(room.frames[key].t) > lastTimestamp
+              console.log "Client lastTimestamp", lastTimestamp, 'vs frame', key, 'timestamp', room.frames[key].t 
+              if _write client, room.frames[key]
+                console.log 'Frame', key ,'updated for pending request of client', clientId
+                client.lastTimestamp[key] = null
+      else
+        console.warn "Room", roomId, "not defined"
+      
+      setTimeout (-> _processPendingRequests roomId), 10
     ###
     * Close a room when no transmitter / receivers
     * @param {roomId} The room to close
@@ -58,53 +79,30 @@ class ScreenSharingServer
     * @param {transmitter} The transmitter
     * @param {data} The data emitted
     ###
-    _onTransmitterDataHandler = (roomId, transmitter, data) =>
+    _onTransmitterDataHandler = (roomId, transmitter, frame) =>
       room = @rooms[roomId]
 
       if room.processFrames
           console.log 'Dropped frames'
           return
 
-      if data         
+      if frame         
         room.processFrames = true
-        if data.k
-          console.log 'Store keyframe', data
-          room.keyFrame = data
-          _write transmitter, 1
 
-          for id, client of room.receivers
-            _write client, room.keyFrame
+        if frame.k
+          console.log 'Store keyframe', frame
+          room.keyFrame = frame
+          room.frames = null
+          @updatedKeyFrame = true
         else
-          updatedFrames = {}
-
-          frame = data
           key = frame.x.toString() + frame.y.toString()
-          console.log 'Store frame', key, frame
-          
-          # Server timestamp
-          frame.ts = new Date().getTime().toString()
+          #console.log 'Store frame', key
+          if room.frames is null
+            room.frames = {}
+          room.frames[key] = frame
 
-          # Looking for clients' pending requests
-          for id, client of room.receivers
-            console.log 'Client', id, 'last timestamp', client.lastTimestamp
-            if frame.t > client.lastTimestamp
-              console.log 'Frame updated for pending request of client', id
-              if not updatedFrames[id]
-                updatedFrames[id] = []
-              console.log 'Updated frame', frame.x, frame.y
-              _write client, frame
+        _write transmitter, 1
 
-            room.frames[key] = frame
-
-          #console.error 'Corrupted frames from transmitter in room', room if okFrames < data.length
-          _write transmitter, 1
-
-          for client of updatedFrames
-            console.log 'Sending updated frames to client', client
-            client.lastTimestamp = null
-            # if _write room.receivers[client], updatedFrames[client]
-            #   client.lastTimestamp = null
-        
         room.processFrames = false
 
     ###*
@@ -128,7 +126,9 @@ class ScreenSharingServer
     ###
     _setTransmitter = (roomId, transmitter) =>
       room = @rooms[roomId]
-      console.log 'Set transmitter', transmitter.id, 'of room', roomId
+
+      transmitter.screenshareId = 'transmitter'
+      console.log 'Set transmitter', transmitter.screenshareId, 'of room', roomId
 
       transmitter.on 'close', -> _onTransmitterCloseHandler(roomId)
       transmitter.on 'data', (data) -> _onTransmitterDataHandler(roomId, transmitter, data)
@@ -147,23 +147,14 @@ class ScreenSharingServer
       console.log 'Client data', data, 'in room', roomId
       room = @rooms[roomId]
       
-      timestamp = parseInt(data)
-      console.log 'Frames timestamp', timestamp
-      updatedFrames = []
-      hasSent = false
-      for own key, frame of room.frames
-        if frame.t > timestamp
-          console.log 'Updated frame', key
-          hasSent = true
-          _write receiver, frame
-      
-      if hasSent
-        console.log 'Sending updated frames since', timestamp
-        #_write receiver, updatedFrames
-      else
-        console.log 'Frame not modified since', data, 'storing timestamp'
-        if room.receivers[receiver.screenshareId] 
-          room.receivers[receiver.screenshareId].lastTimestamp = data
+      if room
+        key = data.key
+        timestamp = parseInt(data.t)
+
+        console.log 'Storing client', receiver.screenshareId, 'timestamp', timestamp, 'for key', key
+        if not receiver.lastTimestamp
+          receiver.lastTimestamp = {}
+        receiver.lastTimestamp[key] = timestamp
 
     ###*
     * Handler when receiver leave
@@ -215,6 +206,8 @@ class ScreenSharingServer
               frames: {},
               transmitter: null,
               receivers: {}
+
+            setTimeout (-> _processPendingRequests meta.room), 0
         else
           console.error 'Room is mandatory'
           return
