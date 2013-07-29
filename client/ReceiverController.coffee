@@ -29,7 +29,9 @@ class window.ScreenSharingReceiver extends Base
       @yOffset = 0
       @canvasContext = canvas.getContext '2d'
 
-      @frames = {}
+      @timestamp = -1
+      @timestamps = {}
+      @sending = {}
 
     ###*
      * Decode a binary base64 arraybuffer to a Base64 string
@@ -53,24 +55,23 @@ class window.ScreenSharingReceiver extends Base
     ###
     _drawKeyFrame = (keyFrame, callback) =>
       if keyFrame.k
-        width = keyFrame.w
-        height = keyFrame.h
-
-        if @canvas.width isnt width or @canvas.height isnt height
-          @canvas.width = width
-          @canvas.height = height
+        if @width isnt keyFrame.w or @height isnt keyFrame.h
+          @width = keyFrame.w
+          @height = keyFrame.h
+          @canvas.width = @width
+          @canvas.height = @height
 
         keyFrame.x = keyFrame.y = 0
-        _draw keyFrame, callback or _endDrawCallback
+        _draw keyFrame, callback
 
     ###*
     * Draw a set of frames on the canvas
     * @param {frames} Frames to draw
     ###
-    _drawDiff = (frames) =>
+    _drawDiff = (frames, callback) =>
       for frame in frames
         if frame is frames[frames.length-1]
-          _draw frame, _endDrawCallback
+          _draw frame, callback
         else
           _draw frame
 
@@ -90,53 +91,69 @@ class window.ScreenSharingReceiver extends Base
       image.src = frame.d
 
     ###*
-    * Callback when drawn
-    ###
-    _endDrawCallback = =>
-      @getRectangle = false
-
-    ###*
     * Ask to the server if new rectangles are available
     ###
     _getRectangle = =>
-      if @getRectangle and @started
-        setTimeout _getRectangle, 10
-        return
-      @getRectangle = true
+      @xOffset++  
+      if @width - @xOffset * @constructor.TILE_SIZE <= 0
+        @xOffset = 0
+        @yOffset++
+        if @height - @yOffset * @constructor.TILE_SIZE <= 0
+          @yOffset = 0
 
-      if not @timestamp
-        @timestamp = -1
+      key = @xOffset.toString() + @yOffset.toString()
 
-      if @stream and @stream.writable
-        @stream.write @timestamp.toString()
-        setTimeout _getRectangle, 0
+      @sending[key] = false unless key of @sending
+      @timestamps[key] = @timestamp or -1 unless key of @timestamps
+
+      if not @sending[key]
+        console.debug 'Asking frame', key
+        @sending[key] = true
+        @stream.write 
+          key: key
+          t: @timestamps[key].toString()
+      setTimeout _getRectangle, 10
 
     _onDataHandler = (frame) =>
       console.log frame
+
       if frame? and @started
         if frame is 0
           @trigger 'transmitterLeft'
-        if frame.k
-          setTimeout _getRectangle, 0
-          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
-          _drawKeyFrame frame, (=> 
-            _endDrawCallback()
-            @trigger 'firstKeyframe'
-            )
-        else if typeof frame is 'object' and not frame.length
-          now = new Date().getTime()
+        else 
           frame.t = parseInt(frame.t)
           frame.ts = parseInt(frame.t)
+          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+
+          now = new Date().getTime()
           console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
           console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
 
-          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+          if frame.k
+            if frame.t > @timestamp
+              console.debug "Keyframe"
+              
+              _drawKeyFrame frame, (=> 
+                console.debug "Drawn keyFrame"
 
-          if frame.t > @timestamp
-            @timestamp = frame.t unless frame.t < @timestamp
-            _draw frame, _endDrawCallback
-        else
-          _endDrawCallback()
+                @timestamps = {}  
+                @sending = {}
+
+                if @timestamp is -1
+                  console.debug "Start _getRectangle"
+                  setTimeout _getRectangle, 0
+
+                @timestamp = frame.t
+                @trigger 'firstKeyframe'
+              )
+          else
+            key = frame.x.toString() + frame.y.toString()
+
+            if @sending[key] and frame.t > @timestamps[key]
+              _draw frame, => 
+                @sending[key] = false
+                @timestamps[key] = frame.t
+                @timestamp = frame.t
 
     _init()
 
