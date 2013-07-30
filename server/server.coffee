@@ -96,12 +96,11 @@ class ScreenSharingServer
     _onTransmitterCloseHandler = (roomId) =>
       console.log 'Transmitter closed of room', roomId
 
-      @rooms[roomId].transmitter = null
+      room = @rooms[roomId]
+
+      room.transmitter = null
       if not _closeRoom(roomId)
-        for id, client of @rooms[roomId].receivers
-          # Signal to each client that transmitter has left
-          console.log 'Sending transmitter left signal to', client.screenshareId
-          _write client, 0
+        room.transmitterEE.emit 'left'
 
     ###
     * Set a room transmitter
@@ -174,9 +173,11 @@ class ScreenSharingServer
 
       receiver._sendFrame = _sendFrame.bind(receiver)
       receiver._sendKeyFrame = _sendKeyFrame.bind(receiver)
+      receiver._sendLeft = _sendLeft.bind(receiver)
 
       room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
       room.transmitterEE.on 'frame', receiver._sendFrame
+      room.transmitterEE.on 'left', receiver._sendLeft
 
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
@@ -203,7 +204,15 @@ class ScreenSharingServer
       if this.lastTimestamp? and key of this.lastTimestamp and this.lastTimestamp[key]? and parseInt(frame.t) > this.lastTimestamp[key]
         if _write this, frame
           console.log 'Frame', key ,'updated for pending request of receiver', this.screenshareId
-          this.lastTimestamp[key] = null     
+          this.lastTimestamp[key] = null    
+
+    ###
+    * Send a transmitter left signal to a receiver
+    ###
+    _sendLeft = ->
+      # Signal to each client that transmitter has left
+      console.log 'Sending transmitter left signal to', this.screenshareId
+      _write this, 0 
 
     _onStream = (stream, meta) =>
       if meta.type
