@@ -1,4 +1,5 @@
 BinaryServer = require('binaryjs').BinaryServer
+EventEmitter = require('events').EventEmitter
 
 class ScreenSharingServer
   defaultPort = 9001
@@ -29,26 +30,6 @@ class ScreenSharingServer
         #console.error 'Stream', stream.screenshareId, 'not writable'
         return false
 
-    _processPendingRequests = (roomId, receiver) =>
-      room = @rooms[roomId]
-
-      if room
-        console.log "Process pending requests of receiver", receiver.screenshareId, 'in room', roomId
-        if receiver.updatedKeyFrame
-          if _write receiver, room.keyFrame
-              receiver.updatedKeyFrame = false 
-              receiver.lastTimestamp = null
-        else     
-          for key, lastTimestamp of receiver.lastTimestamp
-            if room.frames? and key of room.frames and room.frames[key]? and lastTimestamp? and parseInt(room.frames[key].t) > lastTimestamp
-              console.log "Client lastTimestamp", lastTimestamp, 'vs frame', key, 'timestamp', room.frames[key].t 
-              if _write receiver, room.frames[key]
-                console.log 'Frame', key ,'updated for pending request of receiver', receiver.screenshareId
-                receiver.lastTimestamp[key] = null
-      else
-        console.warn "Room", roomId, "not defined"
-    
-      setTimeout (-> _processPendingRequests roomId, receiver), 10
     ###
     * Close a room when no transmitter / receivers
     * @param {roomId} The room to close
@@ -92,14 +73,14 @@ class ScreenSharingServer
           console.log 'Store keyframe', frame
           room.keyFrame = frame
           room.frames = null
-          for id, receiver of room.receivers
-            receiver.updatedKeyFrame = true
+          room.transmitterEE.emit 'keyframe', frame
         else
           key = frame.x.toString() + frame.y.toString()
           #console.log 'Store frame', key
           if room.frames is null
             room.frames = {}
           room.frames[key] = frame
+          room.transmitterEE.emit 'frame', frame
 
         _write transmitter, 1
 
@@ -188,14 +169,38 @@ class ScreenSharingServer
       receiver.on 'data', ((data) -> _onReceiverDataHandler roomId, receiver, data)
       receiver.on 'error', _onError
 
+      receiver._sendFrame = _sendFrame.bind(receiver)
+      receiver._sendKeyFrame = _sendKeyFrame.bind(receiver)
+
+      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
+      room.transmitterEE.on 'frame', receiver._sendFrame
+
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
       room.nextId++
 
-      setTimeout (-> _processPendingRequests roomId, receiver), 0
-
       return receiver.screenshareId
-          
+
+    ###
+    * Send a key frame to a receiver
+    * @param {keyFrame} Key frame to send
+    ###
+    _sendKeyFrame = (keyFrame) ->
+      console.log 'Dispatch keyframe to client', this.screenshareId
+      if _write this, keyFrame
+        this.lastTimestamp = null
+
+    ###
+    * Send a frame to a receiver
+    * @param {frame} Frame to send
+    ###
+    _sendFrame = (frame) ->     
+      key = frame.x.toString() + frame.y.toString()
+      console.log 'Dispatch keyframe', key, 'to client', this.screenshareId
+      if this.lastTimestamp? and key of this.lastTimestamp and this.lastTimestamp[key]? and parseInt(frame.t) > this.lastTimestamp[key]
+        if _write this, frame
+          console.log 'Frame', key ,'updated for pending request of receiver', this.screenshareId
+          this.lastTimestamp[key] = null     
 
     _onStream = (stream, meta) =>
       if meta.type
@@ -207,6 +212,7 @@ class ScreenSharingServer
               keyFrame: null,
               frames: {},
               transmitter: null,
+              transmitterEE: new EventEmitter(),
               receivers: {}
         else
           console.error 'Room is mandatory'
