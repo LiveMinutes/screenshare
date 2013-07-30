@@ -120,6 +120,8 @@ class window.ScreenSharingReceiver extends Base
       if frame? and @started
         if frame is 0
           @trigger 'transmitterLeft'
+        else if frame is 1
+          @trigger 'transmitterJoin'
         else 
           frame.t = parseInt(frame.t)
           frame.ts = parseInt(frame.t)

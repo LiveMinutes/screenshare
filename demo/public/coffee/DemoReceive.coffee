@@ -21,8 +21,11 @@ class window.DemoReceive extends Base
 
 			@receiver.off 'firstKeyframe', _firstKeyframeHandler
 
-		_transmitterLeftHandler = =>
-			console.log "Transmitter has left"
+		_transmitterLeftHandler = ->
+			console.log 'Transmitter has left'
+
+		_transmitterJoinHandler = ->
+			console.log 'Transmitter has joined'
 
 		_start= =>	
 			@button.textContent = 'Leave session'
@@ -31,6 +34,7 @@ class window.DemoReceive extends Base
 
 			@receiver.on 'firstKeyframe', _firstKeyframeHandler
 			@receiver.on 'transmitterLeft', _transmitterLeftHandler
+			@receiver.on 'transmitterJoin', _transmitterJoinHandler
 			@receiver.on 'error', _endHandler
 			@receiver.on 'close', _endHandler
 			@receiver.start()

@@ -118,6 +118,8 @@ class ScreenSharingServer
       transmitter.on 'error', _onError
 
       room.transmitter = transmitter
+
+      room.transmitterEE.emit 'join'
       return true
 
     ###*
@@ -174,10 +176,12 @@ class ScreenSharingServer
       receiver._sendFrame = _sendFrame.bind(receiver)
       receiver._sendKeyFrame = _sendKeyFrame.bind(receiver)
       receiver._sendLeft = _sendLeft.bind(receiver)
+      receiver._sendJoin = _sendJoin.bind(receiver)
 
       room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
       room.transmitterEE.on 'frame', receiver._sendFrame
       room.transmitterEE.on 'left', receiver._sendLeft
+      room.transmitterEE.on 'join', receiver._sendJoin
 
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
@@ -212,7 +216,17 @@ class ScreenSharingServer
     _sendLeft = ->
       # Signal to each client that transmitter has left
       console.log 'Sending transmitter left signal to', this.screenshareId
-      _write this, 0 
+      _write this, 0
+
+    ###
+    * Send a transmitter left signal to a receiver
+    ###
+    _sendJoin = ->
+      # Signal to each client that transmitter has left
+      console.log 'Sending transmitter join signal to', this.screenshareId
+      _write this, 1
+
+
 
     _onStream = (stream, meta) =>
       if meta.type
