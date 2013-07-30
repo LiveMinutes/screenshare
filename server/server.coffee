@@ -22,34 +22,33 @@ class ScreenSharingServer
 
     _write = (stream, data) ->
       if stream.writable
-        console.error 'Write in', stream.screenshareId
+        #console.log 'Write in', stream.screenshareId
         stream.write data
         return true
       else
-        console.error 'Stream', stream.screenshareId, 'not writable'
+        #console.error 'Stream', stream.screenshareId, 'not writable'
         return false
 
-    _processPendingRequests = (roomId) =>
+    _processPendingRequests = (roomId, receiver) =>
       room = @rooms[roomId]
 
       if room
-        #console.log "Process pending requests of room", roomId
-        for clientId, client of room.receivers
-          if @updatedKeyFrame
-            if _write client, room.keyFrame
-                @updatedKeyFrame = false 
-                client.lastTimestamp = null
-                
-          for key, lastTimestamp of client.lastTimestamp
+        console.log "Process pending requests of receiver", receiver.screenshareId, 'in room', roomId
+        if receiver.updatedKeyFrame
+          if _write receiver, room.keyFrame
+              receiver.updatedKeyFrame = false 
+              receiver.lastTimestamp = null
+        else     
+          for key, lastTimestamp of receiver.lastTimestamp
             if room.frames? and key of room.frames and room.frames[key]? and lastTimestamp? and parseInt(room.frames[key].t) > lastTimestamp
               console.log "Client lastTimestamp", lastTimestamp, 'vs frame', key, 'timestamp', room.frames[key].t 
-              if _write client, room.frames[key]
-                console.log 'Frame', key ,'updated for pending request of client', clientId
-                client.lastTimestamp[key] = null
+              if _write receiver, room.frames[key]
+                console.log 'Frame', key ,'updated for pending request of receiver', receiver.screenshareId
+                receiver.lastTimestamp[key] = null
       else
         console.warn "Room", roomId, "not defined"
-      
-      setTimeout (-> _processPendingRequests roomId), 10
+    
+      setTimeout (-> _processPendingRequests roomId, receiver), 10
     ###
     * Close a room when no transmitter / receivers
     * @param {roomId} The room to close
@@ -93,7 +92,8 @@ class ScreenSharingServer
           console.log 'Store keyframe', frame
           room.keyFrame = frame
           room.frames = null
-          @updatedKeyFrame = true
+          for id, receiver of room.receivers
+            receiver.updatedKeyFrame = true
         else
           key = frame.x.toString() + frame.y.toString()
           #console.log 'Store frame', key
@@ -192,6 +192,8 @@ class ScreenSharingServer
       room.receivers[receiver.screenshareId] = receiver
       room.nextId++
 
+      setTimeout (-> _processPendingRequests roomId, receiver), 0
+
       return receiver.screenshareId
           
 
@@ -206,8 +208,6 @@ class ScreenSharingServer
               frames: {},
               transmitter: null,
               receivers: {}
-
-            setTimeout (-> _processPendingRequests meta.room), 0
         else
           console.error 'Room is mandatory'
           return
