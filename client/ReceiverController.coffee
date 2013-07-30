@@ -142,9 +142,9 @@ class window.ScreenSharingReceiver extends Base
                 if @timestamp is -1
                   console.debug "Start _getRectangle"
                   setTimeout _getRectangle, 0
+                  @trigger 'firstKeyframe'
 
                 @timestamp = frame.t
-                @trigger 'firstKeyframe'
               )
           else
             key = frame.x.toString() + frame.y.toString()
