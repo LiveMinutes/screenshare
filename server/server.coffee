@@ -1,5 +1,8 @@
 BinaryServer = require('binaryjs').BinaryServer
 EventEmitter = require('events').EventEmitter
+fs = require 'fs'
+https = require 'https'
+express = require 'express'
 
 class ScreenSharingServer
   defaultPort = 9001
@@ -13,7 +16,7 @@ class ScreenSharingServer
 
   constructor: (port) ->
     @port = port or defaultPort
-
+    
     ###*
     * Handler error
     * @param {error} The error object
@@ -239,14 +242,13 @@ class ScreenSharingServer
         console.error 'Type is mandatory'
         return
 
-  run: ->
-    @binaryServer = new BinaryServer({port:@port})
-    @rooms = {}
-
+  run: (server) ->
+    @binaryServer = new BinaryServer({server:server})
     @binaryServer.on 'connection', (client) ->
       client.on 'error', _onError
       client.on 'stream', _onStream
 
+    @rooms = {}
     return @binaryServer
 
 exports.ScreenSharingServer = ScreenSharingServer
@@ -257,5 +259,24 @@ if require.main == module
     console.error(err.stack)
     process.exit(1)
 
-  new ScreenSharingServer().run()
+  app = express()
+  console.log "Env", app.settings.env
+
+  privateKey = fs.readFileSync('cert/' + app.settings.env + '/privatekey.key').toString()
+  certificate = fs.readFileSync('cert/' + app.settings.env + '/certificate.crt').toString()
+  isCa = fs.existsSync 'cert/' + app.settings.env + '/ca.crt' 
+  if isCa
+    ca = fs.readFileSync('cert/' + app.settings.env + '/ca.crt').toString()
+
+  options =
+    key : privateKey
+    cert : certificate
+    ca: ca
+
+  server = https.createServer(options,app)
+
+  screensharingServer = new ScreenSharingServer()
+  screensharingServer.run server
+
+  server.listen screensharingServer.port
 

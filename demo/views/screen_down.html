@@ -10,7 +10,7 @@
 <canvas></canvas>
 <script>
     (function () {
-        var serverUrl = "ws://" + window.location.hostname + ":9001",
+        var serverUrl = "wss://" + window.location.hostname + ":9001",
             room = '<%= room %>',
             startButton = document.getElementById('startButton');
             canvas = document.getElementsByTagName('canvas')[0];
