@@ -9,6 +9,10 @@ class window.ScreenSharingTransmitter extends Base
   _getQuality = null
   _equal = null
   _export = null
+  _openHandler = null
+  _closeHandler = null
+  _errorHandler = null
+  _frameReceivedHandler = null
 
   ### Defaults options ###
   defaults:
@@ -275,37 +279,35 @@ class window.ScreenSharingTransmitter extends Base
       if not @client
         @client = BinaryClient(@serverUrl)
 
-        @client.on 'open', =>
-          console.log 'Stream open'
-          @stream = @client.createStream
-            room: @room
-            type: 'write'
+        @client.on 'open', _openHandler
+        @client.on 'close', _closeHandler
+        @client.on 'error', _errorHandler
 
-          @stream.on 'data', (data) =>
-            if data
-              console.log 'Received'
-              @framesSent += data
-              @sending -= data
+    _openHandler = =>
+      console.log 'Stream open'
+      @stream = @client.createStream
+        room: @room
+        type: 'write'
 
-          @stream.on 'error', (e) =>
-            @stop()
-            @trigger 'error', e
+      @stream.on 'data', _frameReceivedHandler
+      @stream.on 'error', _errorHandler
 
-          @stream.on 'close', =>
-            if @started
-              @stop()
-              @trigger 'close'
+      @stream.on 'close', _closeHandler 
+      @trigger 'open'
 
-          @trigger 'open'
+    _closeHandler = =>
+      @stop()
+      @trigger 'close'
 
-        @client.on 'close', =>
-          if @started
-            @stop()
-            @trigger 'close'
+    _errorHandler = (e) =>
+      @stop()
+      @trigger 'error', e
 
-        @client.on 'error', (e) =>
-          @stop()
-          @trigger 'error', e
+    _frameReceivedHandler = (data) =>
+      if data?
+        console.log 'Received'
+        @framesSent += data
+        @sending -= data
 
     _canPlayHandler = =>
       @startTime = new Date().getTime()
@@ -395,15 +397,23 @@ class window.ScreenSharingTransmitter extends Base
       clearInterval _processStaticInterval
       _processStaticInterval = false
 
+      if @client
+        # Unregister events handlers
+        @client.off 'open', _openHandler
+        @client.off 'close', _closeHandler
+        @client.off 'error', _errorHandler
+        @client.close()
+        @client = null
+
+        @stream.off 'data', _frameReceivedHandler
+        @stream.off 'error', _errorHandler
+        @stream = null
+
       @sending = 0
       @streaming = false
       @localStream.stop()
       @video.removeEventListener 'canplay', _canPlayHandler
       
-      if @client
-        @client.close()
-        @client = null
-        @stream = null
 
 
 
