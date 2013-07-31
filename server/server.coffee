@@ -287,11 +287,12 @@ if require.main == module
   console.log "Env", app.settings.env
   app.use express.static(path.join(__dirname, "public"))
 
-  privateKey = fs.readFileSync('cert/' + app.settings.env + '/privatekey.key').toString()
-  certificate = fs.readFileSync('cert/' + app.settings.env + '/certificate.crt').toString()
-  isCa = fs.existsSync 'cert/' + app.settings.env + '/ca.crt' 
+  privateKey = fs.readFileSync(path.join(__dirname, 'cert/' + app.settings.env + '/privatekey.key')).toString()
+  certificate = fs.readFileSync(path.join(__dirname,'cert/' + app.settings.env + '/certificate.crt')).toString()
+  caPath = path.join(__dirname, 'cert/' + app.settings.env + '/ca.crt')
+  isCa = fs.existsSync caPath
   if isCa
-    ca = fs.readFileSync('cert/' + app.settings.env + '/ca.crt').toString()
+    ca = fs.readFileSync(caPath).toString()
 
   options =
     key : privateKey
