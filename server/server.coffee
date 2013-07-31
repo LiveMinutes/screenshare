@@ -3,6 +3,7 @@ EventEmitter = require('events').EventEmitter
 fs = require 'fs'
 https = require 'https'
 express = require 'express'
+path = require 'path'
 
 class ScreenSharingServer
   defaultPort = 9001
@@ -284,6 +285,7 @@ if require.main == module
 
   app = express()
   console.log "Env", app.settings.env
+  app.use express.static(path.join(__dirname, "public"))
 
   privateKey = fs.readFileSync('cert/' + app.settings.env + '/privatekey.key').toString()
   certificate = fs.readFileSync('cert/' + app.settings.env + '/certificate.crt').toString()
@@ -301,5 +303,6 @@ if require.main == module
   screensharingServer = new ScreenSharingServer()
   screensharingServer.run server
 
+  console.log 'Listen on port', screensharingServer.port
   server.listen screensharingServer.port
 

@@ -1,0 +1,3 @@
+[submodule "client/libs/binaryjs"]
+	path = client/libs/binaryjs
+	url = https://github.com/LiveMinutes/binaryjs.git
