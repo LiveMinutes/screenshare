@@ -4,6 +4,7 @@ fs = require 'fs'
 https = require 'https'
 express = require 'express'
 path = require 'path'
+heapdump = require 'heapdump'
 
 class ScreenSharingServer
   defaultPort = 9001
@@ -99,6 +100,7 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
 
+      room.transmitter.removeAllListeners()
       room.transmitter = null
       if not _closeRoom(roomId)
         room.transmitterEE.emit 'left'
