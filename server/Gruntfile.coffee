@@ -80,12 +80,18 @@ module.exports = (grunt) ->
             execOptions:
               cwd: '<%=dest%>'
           command: 'npm install --production --no-registry'
-        start:
+        startDev:
           options:
             stdout: true
             execOptions:
               cwd: '<%=dest%>'
-          command: 'npm start'
+          command: 'supervisor server.coffee'
+        startProduction:
+          options:
+            stdout: true
+            execOptions:
+              cwd: '<%=dest%>'
+          command: 'forever stop 0 && NODE_ENV=production forever start -c coffee server.coffee'
 
       watch:
           scripts:
@@ -96,5 +102,6 @@ module.exports = (grunt) ->
 
     grunt.registerTask "build", ["clean:build", "hub:client", "copy"]
     grunt.registerTask "build-js", ["clean:build", "hub:client", "copy:main", "coffee"]
-    grunt.registerTask "start", ["shell:npm", "shell:start"]
+    grunt.registerTask "start-production", ["shell:npm", "shell:startProduction"]
+    grunt.registerTask "start-dev", ["shell:npm", "shell:startDev"]
     grunt.registerTask "default", ["build", "start"]
