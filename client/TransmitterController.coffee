@@ -45,13 +45,6 @@ class window.ScreenSharingTransmitter extends Base
     @video = document.createElement 'video'
 
     ###*
-    * Detect if a screen is static
-    ###
-    _processStatic = =>
-      @avgSendFrames = 0 if @sending is 0 and not @hasSent
-      _processStaticInterval = setTimeout _processStatic, 50
-
-    ###*
      * Process the network stats (frames to send / sent)
     ###
     _processNetworkStats = =>
@@ -347,7 +340,6 @@ class window.ScreenSharingTransmitter extends Base
 
       _snapInterval = setTimeout _snap, 0
       _processNetworkStatsInterval = setTimeout _processNetworkStats, 0
-      _processStaticInterval = setTimeout _processStatic, 0
 
       _createBinaryClient()
 
@@ -392,10 +384,7 @@ class window.ScreenSharingTransmitter extends Base
       _snapInterval = false
 
       clearInterval _processNetworkStatsInterval
-      _processNetworkStatsInterval = false
-
-      clearInterval _processStaticInterval
-      _processStaticInterval = false
+      _processNetworkStatsInterval = falseƒ
 
       if @client
         # Unregister events handlers
