@@ -40,6 +40,12 @@ module.exports = (grunt) ->
           files: [
             {
               expand: true # includes files in path and its subdirs
+              src: ["cert/**/*"]
+              dest: "<%=dest%>/"
+            }
+            ,
+            {
+              expand: true # includes files in path and its subdirs
               src: ["package.json"]
               dest: "<%=dest%>/"
             }
