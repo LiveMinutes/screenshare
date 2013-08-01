@@ -78,14 +78,14 @@ class ScreenSharingServer
           console.log 'Store keyframe', frame
           room.keyFrame = frame
           room.frames = null
-          room.transmitterEE.emit 'keyframe', frame
+          room.transmitter.emit 'keyframe', frame
         else
           key = frame.x.toString() + frame.y.toString()
           #console.log 'Store frame', key
           if room.frames is null
             room.frames = {}
           room.frames[key] = frame
-          room.transmitterEE.emit 'frame', frame
+          room.transmitter.emit 'frame', frame
 
         _write transmitter, 1
 
@@ -100,11 +100,12 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
 
+      if not _closeRoom(roomId)
+        room.transmitter.emit 'left'
+
       room.transmitter.removeAllListeners()
       room.transmitter = null
-      if not _closeRoom(roomId)
-        room.transmitterEE.emit 'left'
-
+      
     ###
     * Set a room transmitter
     * @param {roomId} Room ID
@@ -122,7 +123,7 @@ class ScreenSharingServer
 
       room.transmitter = transmitter
 
-      room.transmitterEE.emit 'join'
+      room.transmitter.emit 'join'
       return true
 
     ###*
@@ -182,10 +183,10 @@ class ScreenSharingServer
       receiver._sendLeft = _sendLeft.bind(receiver)
       receiver._sendJoin = _sendJoin.bind(receiver)
 
-      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
-      room.transmitterEE.on 'frame', receiver._sendFrame
-      room.transmitterEE.on 'left', receiver._sendLeft
-      room.transmitterEE.on 'join', receiver._sendJoin
+      room.transmitter.on 'keyframe', receiver._sendKeyFrame
+      room.transmitter.on 'frame', receiver._sendFrame
+      room.transmitter.on 'left', receiver._sendLeft
+      room.transmitter.on 'join', receiver._sendJoin
 
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
@@ -242,7 +243,6 @@ class ScreenSharingServer
               keyFrame: null,
               frames: {},
               transmitter: null,
-              transmitterEE: new EventEmitter(),
               receivers: {}
         else
           console.error 'Room is mandatory'
