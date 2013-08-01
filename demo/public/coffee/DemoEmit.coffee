@@ -17,7 +17,7 @@ class window.DemoEmit
       @container.innerHTML = ''
 
     _socketCloseHandler = =>
-      stop()
+      _stop()
 
     _start= =>
       @transmitter.on 'open', _socketOpenHandler

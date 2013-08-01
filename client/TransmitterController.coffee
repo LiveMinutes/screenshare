@@ -384,16 +384,17 @@ class window.ScreenSharingTransmitter extends Base
       _snapInterval = false
 
       clearInterval _processNetworkStatsInterval
-      _processNetworkStatsInterval = falseƒ
+      _processNetworkStatsInterval = false
 
-      if @client
-        # Unregister events handlers
+      # Unregister events handlers
+      if @client?
         @client.off 'open', _openHandler
         @client.off 'close', _closeHandler
         @client.off 'error', _errorHandler
         @client.close()
         @client = null
 
+      if @stream?
         @stream.off 'data', _frameReceivedHandler
         @stream.off 'error', _errorHandler
         @stream = null
