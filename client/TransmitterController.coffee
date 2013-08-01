@@ -1,5 +1,6 @@
 class window.ScreenSharingTransmitter extends Base
   ### Private members ###
+  _init = null
   _snap = null
   _dataURItoBlob = null
   _canPlayHandler = null
@@ -13,6 +14,8 @@ class window.ScreenSharingTransmitter extends Base
   _closeHandler = null
   _errorHandler = null
   _frameReceivedHandler = null
+  _onEndedHandler = null
+  _getUserMediaSuccess = null
 
   ### Defaults options ###
   defaults:
@@ -34,25 +37,35 @@ class window.ScreenSharingTransmitter extends Base
     @room = room
     super options
 
+    # Retina support (devicePixelRatio == 2)
     if devicePixelRatio > 1
       @options.width = screen.width
     else
       @options.width = Math.min(1024, screen.width)
 
-    @streaming = false
-    @sending = 0
-    @lastFrames = {}
-    @sentFrameRate = []
-    @mismatchesCount = {}
-
     @cvs = document.createElement 'canvas'
     @ctx = @cvs.getContext '2d'
+
+    @exportCanvas = document.createElement 'canvas'
+    @exportCanvasCtx = @exportCanvas.getContext '2d'
+
     @video = document.createElement 'video'
+    @video.autoplay = true
+
+    _init = =>
+      @keyframe = false
+      @streaming = false
+      @sending = 0
+      @lastFrames = null
+      @sentFrameRate = []
+      @mismatchesCount = null
 
     ###*
      * Process the network stats (frames to send / sent)
     ###
     _processNetworkStats = =>
+      return if not @started
+
       if not @hasSent
         _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
         return
@@ -88,22 +101,23 @@ class window.ScreenSharingTransmitter extends Base
     _getQuality = (key) =>
       quality = @options.highQuality
 
-      if key
-        if key of @mismatchesCount
-          if @mismatchesCount[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
-            #console.log key, 'Low quality', @options.lowQuality
-            quality = @options.lowQuality
-          else if @mismatchesCount[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
-            #console.log key, 'Medium quality', @options.mediumQuality
-            quality = @options.mediumQuality
-      else
-        if @avgSendFrames > 0
-          if @avgSendFrames <= 75 or @avgSendFrames >= 125
-            #console.log 'Low quality', @options.lowQuality
-            quality = @options.lowQuality
-          else if @avgSendFrames <= 90 or @avgSendFrames >= 110
-            #console.log 'Medium quality', @options.mediumQuality
-            quality = @options.mediumQuality
+      if @mismatchesCount?
+        if key
+          if key of @mismatchesCount
+            if @mismatchesCount[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
+              #console.log key, 'Low quality', @options.lowQuality
+              quality = @options.lowQuality
+            else if @mismatchesCount[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
+              #console.log key, 'Medium quality', @options.mediumQuality
+              quality = @options.mediumQuality
+        else
+          if @avgSendFrames > 0
+            if @avgSendFrames <= 75 or @avgSendFrames >= 125
+              #console.log 'Low quality', @options.lowQuality
+              quality = @options.lowQuality
+            else if @avgSendFrames <= 90 or @avgSendFrames >= 110
+              #console.log 'Medium quality', @options.mediumQuality
+              quality = @options.mediumQuality
 
       return quality
 
@@ -133,115 +147,128 @@ class window.ScreenSharingTransmitter extends Base
      * @param {quality} Export quality
      * @return Base64 exported String
     ###
-    _export = (data, format, quality) ->
-      canvas = document.createElement 'canvas'
-      canvas.width = data.width
-      canvas.height = data.height
-      context = canvas.getContext("2d")
-      context.putImageData data, 0, 0
-      canvas.toDataURL format, quality
+    _export = (data, format, quality) =>
+      @exportCanvas.width = data.width
+      @exportCanvas.height = data.height
+      @exportCanvasCtx.putImageData data, 0, 0
+      @exportCanvas.toDataURL format, quality
+
+    _processKeyFrame = =>
+      if @keyframe
+        keyframeQuality = _getQuality()
+
+        if keyframeQuality <= @keyframeQuality
+          return false
+        else
+          @keyframeQuality = keyframeQuality
+      else
+        @keyframe = true
+        @keyframeQuality = @options.lowQuality
+
+      console.debug 'Send keyframe'
+
+      keyFrame =
+        k: true
+        d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, @keyframeQuality)
+        w: @options.width
+        h: @options.height
+        t: new Date().getTime().toString()
+
+      @mismatchesCount = null
+      @sending++
+      @hasSent = true
+      @framesToSend++
+      @stream.write keyFrame
+
+      return true
+
+    _processFrame = (xOffset, yOffset) =>
+      key = xOffset.toString() + yOffset.toString()
+      updatedFrame = null
+        
+      lastFrame = @lastFrames[key]
+      newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
+
+      if lastFrame and lastFrame.data
+        equal = _equal(newFrame, lastFrame.data)
+        if not equal
+          lastFrame.data = newFrame
+          
+          unless @mismatchesCount[key]?
+            @mismatchesCount[key] = 1
+          else
+            @mismatchesCount[key]++
+
+        quality = _getQuality(key)
+
+        # console.log 'Mismatch',  @mismatchesCount[key] if @mismatchesCount? 
+
+        if @mismatchesCount[key] > 0 or quality > lastFrame.quality
+          console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
+          
+          lastFrame.quality = quality
+          data = _export newFrame, @options.exportFormat, quality
+          updatedFrame =
+            d: _dataURItoBlob(data)
+            x: xOffset
+            y: yOffset
+
+      return updatedFrame
+
+    _processFrames = =>
+      framesUpdates = []
+
+      unless @mismatchesCount?
+        @mismatchesCount = {}
+
+      xOffset = -1
+      yOffset = -1
+      mismatchesCount = 0 
+
+      # Stop conditions : 80% of the screen modified, entire grid browsed
+      stop = false
+      while not stop
+        xOffset++
+        if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+          xOffset = 0
+          yOffset++
+          if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+            stop = true
+
+        if not stop
+          updatedFrame = _processFrame(xOffset, yOffset)
+
+          if updatedFrame?
+            framesUpdates.push updatedFrame
+            mismatchesCount++
+              
+            if mismatchesCount >= @gridSize * 0.8
+              console.log 'Generate key frame, total mismatches', mismatchesCount
+              @keyframe = false 
+              stop = true
+
+      if not @sending and framesUpdates.length and @keyframe
+        console.debug "Sending diff"
+        for frame in framesUpdates
+          key = frame.x.toString() + frame.y.toString()
+          delete @mismatchesCount[key]
+          frame.t = new Date().getTime().toString()
+          @sending++
+          @hasSent = true
+          @framesToSend++
+          @stream.write frame
 
     ###*
      * Take a snapshot of each modified part of the screen
     ###
-    _snap = =>        
-      @ctx.drawImage @video, 0, 0, @options.width, @options.height
+    _snap = =>   
+      return if not @started
 
       if @stream and @stream.writable and (not @sending or @keyFrame)
-        # Sending a Keyframe
-        if @keyFrame
-          keyFramequality = _getQuality()
-        else 
-          keyFramequality = @options.lowQuality
-          
-        if not @keyFrame or keyFramequality > @keyFrame.quality
-          @keyFrame = 
-            data: @ctx.getImageData 0, 0, @options.width, @options.height
-            quality: keyFramequality
+        @ctx.drawImage @video, 0, 0, @options.width, @options.height
 
-          keyFrame =
-            k: true
-            d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, keyFramequality)
-            w: @options.width
-            h: @options.height
-            t: new Date().getTime().toString()
-
-          @mismatchesCount = {}
-          console.log 'Send keyframe', keyFrame
-          @sending++
-          @hasSent = true
-          @framesToSend++
-          @stream.write keyFrame
-        # Sending diff frames
-        else
-          framesUpdates = do () =>
-            framesUpdates = []
-            xOffset = 0
-            yOffset = 0
-            stop = false
-            while not stop
-              stop = do () =>
-                key = xOffset.toString() + yOffset.toString()
-              
-                lastFrame = @lastFrames[key]
-                newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
-
-                if lastFrame and lastFrame.data
-                  equal = _equal(newFrame, lastFrame.data)
-                  if not equal
-                    lastFrame.data = newFrame
-                    unless @mismatchesCount[key]?
-                      @mismatchesCount[key] = 1
-                    else
-                      @mismatchesCount[key]++
-
-                      mismatchesCount = 0
-                      for key, mismatchesCountKey of @mismatchesCount 
-                        if mismatchesCountKey >= 1
-                          mismatchesCount++
-
-                      if mismatchesCount >= @gridSize * 0.8
-                        console.log 'Total mismatches', mismatchesCount
-                        @mismatchesCount = {}
-                        @keyFrame = null 
-                        return true
-
-                  quality = _getQuality(key)
-
-                  console.log 'Mismatch',  @mismatchesCount[key]
-
-                  if not @sending and (@mismatchesCount[key] > 0 or quality > lastFrame.quality)
-                    console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
-                    
-                    lastFrame.quality = quality
-                    data = _export newFrame, @options.exportFormat, quality
-                    framesUpdates.push
-                      d: _dataURItoBlob(data)
-                      x: xOffset
-                      y: yOffset
-                     
-                xOffset++
-                if @options.width - xOffset * @constructor.TILE_SIZE <= 0
-                  xOffset = 0
-                  yOffset++
-                  if @options.height - yOffset * @constructor.TILE_SIZE <= 0
-                    yOffset = 0
-                    return true
-                  return false
-                return false
-
-            return framesUpdates
-
-          if @keyFrame and not @sending
-            console.debug "Sending diff"
-            for frame in framesUpdates
-              key = frame.x.toString() + frame.y.toString()
-              frame.t = new Date().getTime().toString()
-              @mismatchesCount[key] = 0
-              @sending++
-              @hasSent = true
-              @framesToSend++
-              @stream.write frame
+        if not _processKeyFrame()
+          _processFrames()
 
       _snapInterval = setTimeout _snap, 10
 
@@ -299,6 +326,7 @@ class window.ScreenSharingTransmitter extends Base
 
     _errorHandler = (e) =>
       @stop()
+      console.error e
       @trigger 'error', e
 
     _frameReceivedHandler = (data) =>
@@ -308,8 +336,7 @@ class window.ScreenSharingTransmitter extends Base
         @sending -= data
 
     _canPlayHandler = =>
-      @startTime = new Date().getTime()
-      @keyFrame = false
+      @keyFrame = null
       @streaming = true
 
       @options.height = @video.videoHeight / (@video.videoWidth/@options.width)
@@ -322,6 +349,8 @@ class window.ScreenSharingTransmitter extends Base
 
       @framesSent = 0
       @framesToSend = 0
+
+      @lastFrames = {}
 
       xOffset = 0
       yOffset = 0
@@ -350,11 +379,25 @@ class window.ScreenSharingTransmitter extends Base
 
       @trigger 'canplay'
 
+    _onEndedHandler = (e) =>
+      console.log 'onended'
+      @trigger 'onended'  
+      @stop()
+
+    _getUserMediaSuccess = (s) =>
+      @streaming = true
+      @localStream = s
+      @localStream.onended = _onEndedHandler
+
+      @video.src = window.URL.createObjectURL(@localStream)
+
+    _init()
+
   start: (e) ->
     if @started
       return
 
-    @started = true    
+    @started = true 
 
     # Seems to only work over SSL.
     navigator.getUserMedia = navigator.webkitGetUserMedia or navigator.getUserMedia
@@ -362,21 +405,14 @@ class window.ScreenSharingTransmitter extends Base
       video:
         mandatory:
           chromeMediaSource: 'screen'
-      (s) =>
-        @streaming = true
-        @localStream = s
-        @localStream.onended = (e) =>
-          if @started
-            console.log 'onended'
-            @trigger 'onended'
-
-        @video.src = window.URL.createObjectURL(@localStream);
-        @video.autoplay = true
-      (e) =>
-        console.log('Error', e)
-        @trigger 'error', e
+      width: screen.width
+      height: screen.height
+      _getUserMediaSuccess
+      _errorHandler
 
     @video.addEventListener 'canplay', _canPlayHandler, false
+
+    _init()
 
   stop: ->
     if not @started
@@ -384,30 +420,27 @@ class window.ScreenSharingTransmitter extends Base
 
     @started = false
 
-    if _snapInterval and @localStream
-      clearInterval _snapInterval
-      _snapInterval = false
+    # Unregister events handlers
+    if @client?
+      @client.off 'open', _openHandler
+      @client.off 'close', _closeHandler
+      @client.off 'error', _errorHandler
+      @client.close()
+      @client = null
 
-      clearInterval _processNetworkStatsInterval
-      _processNetworkStatsInterval = false
+    if @stream?
+      @stream.off 'data', _frameReceivedHandler
+      @stream.off 'error', _errorHandler
+      @stream = null
 
-      # Unregister events handlers
-      if @client?
-        @client.off 'open', _openHandler
-        @client.off 'close', _closeHandler
-        @client.off 'error', _errorHandler
-        @client.close()
-        @client = null
-
-      if @stream?
-        @stream.off 'data', _frameReceivedHandler
-        @stream.off 'error', _errorHandler
-        @stream = null
-
-      @sending = 0
-      @streaming = false
+    if @localStream
+      @localStream.onended = null
       @localStream.stop()
-      @video.removeEventListener 'canplay', _canPlayHandler
+      @localStream = null
+
+    @video.removeEventListener 'canplay', _canPlayHandler
+
+    _init()
       
 
 
