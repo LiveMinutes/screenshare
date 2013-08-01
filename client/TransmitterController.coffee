@@ -20,7 +20,7 @@ class window.ScreenSharingTransmitter extends Base
     highQuality: 0.8
     mediumQuality: 0.3
     lowQuality: 0.1
-    width: if screen.width <= 1024 then screen.width else 1024
+    width: false
     height: false
   
   ###*
@@ -33,6 +33,11 @@ class window.ScreenSharingTransmitter extends Base
     @serverUrl = serverUrl
     @room = room
     super options
+
+    if devicePixelRatio > 1
+      @options.width = screen.width
+    else
+      @options.width = Math.min(1024, screen.width)
 
     @streaming = false
     @sending = 0
@@ -308,8 +313,8 @@ class window.ScreenSharingTransmitter extends Base
       @streaming = true
 
       @options.height = @video.videoHeight / (@video.videoWidth/@options.width)
-      @video.setAttribute 'width', @options.width
-      @video.setAttribute 'height', @options.height
+      #@video.setAttribute 'width', @options.width
+      #@video.setAttribute 'height', @options.height
       @cvs.setAttribute 'width', @options.width
       @cvs.setAttribute 'height', @options.height
 
