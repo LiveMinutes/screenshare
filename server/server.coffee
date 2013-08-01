@@ -77,14 +77,14 @@ class ScreenSharingServer
           console.log 'Store keyframe', frame
           room.keyFrame = frame
           room.frames = null
-          room.transmitter.emit 'keyframe', frame
+          room.transmitterEE.emit 'keyframe', frame
         else
           key = frame.x.toString() + frame.y.toString()
           #console.log 'Store frame', key
           if room.frames is null
             room.frames = {}
           room.frames[key] = frame
-          room.transmitter.emit 'frame', frame
+          room.transmitterEE.emit 'frame', frame
 
         _write transmitter, 1
 
@@ -100,7 +100,7 @@ class ScreenSharingServer
       room = @rooms[roomId]
 
       if not _closeRoom(roomId)
-        room.transmitter.emit 'left'
+        room.transmitterEE.emit 'left'
 
       room.transmitter.removeAllListeners()
       room.transmitter = null
@@ -122,7 +122,7 @@ class ScreenSharingServer
 
       room.transmitter = transmitter
 
-      room.transmitter.emit 'join'
+      room.transmitterEE.emit 'join'
       return true
 
     ###*
@@ -182,10 +182,10 @@ class ScreenSharingServer
       receiver._sendLeft = _sendLeft.bind(receiver)
       receiver._sendJoin = _sendJoin.bind(receiver)
 
-      room.transmitter.on 'keyframe', receiver._sendKeyFrame
-      room.transmitter.on 'frame', receiver._sendFrame
-      room.transmitter.on 'left', receiver._sendLeft
-      room.transmitter.on 'join', receiver._sendJoin
+      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
+      room.transmitterEE.on 'frame', receiver._sendFrame
+      room.transmitterEE.on 'left', receiver._sendLeft
+      room.transmitterEE.on 'join', receiver._sendJoin
 
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
@@ -242,6 +242,7 @@ class ScreenSharingServer
               keyFrame: null,
               frames: {},
               transmitter: null,
+              transmitterEE: new EventEmitter(),
               receivers: {}
         else
           console.error 'Room is mandatory'
