@@ -41,7 +41,9 @@ class window.ScreenSharingTransmitter extends Base
     if devicePixelRatio > 1
       @options.width = screen.width
     else
-      @options.width = Math.min(1024, screen.width)
+      @options.width = Math.min(800, screen.width)
+
+    @options.height = screen.height / (screen.width/@options.width)
 
     @cvs = document.createElement 'canvas'
     @ctx = @cvs.getContext '2d'
@@ -339,9 +341,6 @@ class window.ScreenSharingTransmitter extends Base
       @keyFrame = null
       @streaming = true
 
-      @options.height = @video.videoHeight / (@video.videoWidth/@options.width)
-      #@video.setAttribute 'width', @options.width
-      #@video.setAttribute 'height', @options.height
       @cvs.setAttribute 'width', @options.width
       @cvs.setAttribute 'height', @options.height
 
@@ -405,6 +404,8 @@ class window.ScreenSharingTransmitter extends Base
       video:
         mandatory:
           chromeMediaSource: 'screen'
+          maxWidth: @options.width
+          maxHeight: @options.height
       width: screen.width
       height: screen.height
       _getUserMediaSuccess
