@@ -242,7 +242,7 @@ class window.ScreenSharingTransmitter extends Base
         @mismatchesCount = {}
 
       xOffset = -1
-      yOffset = -1
+      yOffset = 0
       mismatchesCount = 0 
 
       # Stop conditions : 80% of the screen modified, entire grid browsed
