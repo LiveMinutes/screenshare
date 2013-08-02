@@ -120,11 +120,12 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
 
+      room.transmitter.removeAllListeners()
+      room.transmitter = null
+      
       if not _closeRoom(roomId)
         room.transmitterEE.emit 'left'
 
-      room.transmitter.removeAllListeners()
-      room.transmitter = null
 
     ###
     * Add a room receiver

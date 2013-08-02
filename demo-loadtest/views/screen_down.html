@@ -1,0 +1,20 @@
+<html>
+<head>
+    <title><%= title %></title>
+    <script src="/js/binary/binary.js"></script>
+    <script src="/js/receiver.js"></script>
+    <script src="/js/demo-client-receive.js"></script>
+</head>
+<body>
+<button id="startButton" style="float:left">Join session</button>
+<canvas style="width:800px"></canvas>
+<script>
+    (function () {
+        var serverUrl = "wss://screen-eu-west.liveminutes.com:9001",
+            canvas = document.getElementsByTagName('canvas')[0];
+
+        new DemoReceive(serverUrl, canvas);
+    })()
+</script>
+</body>
+</html>

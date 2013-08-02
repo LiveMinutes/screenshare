@@ -1,13 +1,13 @@
 class window.ScreenSharingReceiver extends Base
   ### Private members ###
-  _init = null
-  _drawKeyFrame = null
-  _drawDiff = null
-  _draw = null
-  _arrayBufferToBase64 = null
-  _getRectangle = null
-  _createClient = null
-  _onDataHandler = null
+  @_init = null
+  @_drawKeyFrame = null
+  @_drawDiff = null
+  @_draw = null
+  @_arrayBufferToBase64 = null
+  @_getRectangle = null
+  @_createClient = null
+  @_onDataHandler = null
 
   ###*
    * Constructor
@@ -20,7 +20,7 @@ class window.ScreenSharingReceiver extends Base
     @room = room
     @canvas = canvas
 
-    _init = =>
+    @_init = =>
       @started = false
       @getRectangle = false
       @client = null
@@ -37,7 +37,7 @@ class window.ScreenSharingReceiver extends Base
      * Decode a binary base64 arraybuffer to a Base64 string
      * @param {buffer} Buffer to decode
     ###
-    _arrayBufferToBase64 = (buffer) ->
+    @_arrayBufferToBase64 = (buffer) ->
       binary = ''
       bytes = new Uint8Array(buffer)
       len = bytes.byteLength
@@ -53,7 +53,7 @@ class window.ScreenSharingReceiver extends Base
     * Draw a key frame on the canvas
     * @param {keyFrame} The key frame to draw
     ###
-    _drawKeyFrame = (keyFrame, callback) =>
+    @_drawKeyFrame = (keyFrame, callback) =>
       if keyFrame.k
         if @width isnt keyFrame.w or @height isnt keyFrame.h
           @width = keyFrame.w
@@ -62,25 +62,25 @@ class window.ScreenSharingReceiver extends Base
           @canvas.height = @height
 
         keyFrame.x = keyFrame.y = 0
-        _draw keyFrame, callback
+        @_draw keyFrame, callback
 
     ###*
     * Draw a set of frames on the canvas
     * @param {frames} Frames to draw
     ###
-    _drawDiff = (frames, callback) =>
+    @_drawDiff = (frames, callback) =>
       for frame in frames
         if frame is frames[frames.length-1]
-          _draw frame, callback
+          @_draw frame, callback
         else
-          _draw frame
+          @_draw frame
 
     ###*
     * Draw a frame on the canvas
     * @param {frame} the frame to draw
     * @param {callback} Callback to call when drawn
     ###
-    _draw = (frame, callback) =>
+    @_draw = (frame, callback) =>
       tileSize = @constructor.TILE_SIZE
       context = @canvasContext
 
@@ -93,7 +93,7 @@ class window.ScreenSharingReceiver extends Base
     ###*
     * Ask to the server if new rectangles are available
     ###
-    _getRectangle = =>
+    @_getRectangle = =>
       @xOffset++  
       if @width - @xOffset * @constructor.TILE_SIZE <= 0
         @xOffset = 0
@@ -107,15 +107,15 @@ class window.ScreenSharingReceiver extends Base
       @timestamps[key] = @timestamp or -1 unless key of @timestamps
 
       if not @sending[key]
-        console.debug 'Asking frame', key
+        # console.debug 'Asking frame', key
         @sending[key] = true
         @stream.write 
           key: key
           t: @timestamps[key].toString()
-      setTimeout _getRectangle, 10
+      setTimeout @_getRectangle, 10
 
-    _onDataHandler = (frame) =>
-      console.log frame
+    @_onDataHandler = (frame) =>
+      # console.debug frame
 
       if frame? and @started
         if frame is 0
@@ -124,26 +124,25 @@ class window.ScreenSharingReceiver extends Base
           @trigger 'transmitterJoin'
         else 
           frame.t = parseInt(frame.t)
-          frame.ts = parseInt(frame.t)
-          frame.d = 'data:image/jpeg;base64,' + _arrayBufferToBase64(frame.d)
+          frame.d = 'data:image/jpeg;base64,' + @_arrayBufferToBase64(frame.d)
 
           now = new Date().getTime()
-          console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
-          console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
+          latence = (now - frame.t)/1000
+          @trigger 'stats', latence
 
           if frame.k
             if frame.t > @timestamp
-              console.debug "Keyframe"
+              # console.debug "Keyframe"
               
-              _drawKeyFrame frame, (=> 
-                console.debug "Drawn keyFrame"
+              @_drawKeyFrame frame, (=> 
+                # console.debug "Drawn keyFrame"
 
                 @timestamps = {}  
                 @sending = {}
 
                 if @timestamp is -1
-                  console.debug "Start _getRectangle"
-                  setTimeout _getRectangle, 0
+                  # console.debug "Start @_getRectangle"
+                  setTimeout @_getRectangle, 0
                   @trigger 'firstKeyframe'
 
                 @timestamp = frame.t
@@ -152,17 +151,17 @@ class window.ScreenSharingReceiver extends Base
             key = frame.x.toString() + frame.y.toString()
 
             if @sending[key] and frame.t > @timestamps[key]
-              _draw frame, => 
+              @_draw frame, => 
                 @sending[key] = false
                 @timestamps[key] = frame.t
                 @timestamp = frame.t
 
-    _init()
+    @_init()
 
     ###
     * Create the WS binary client
     ###
-    _createClient = =>
+    @_createClient = =>
       @client = new BinaryClient(@serverUrl)
 
       @client.on 'open', =>
@@ -170,7 +169,7 @@ class window.ScreenSharingReceiver extends Base
           room: @room
           type: 'read'
 
-        @stream.on 'data', _onDataHandler
+        @stream.on 'data', @_onDataHandler
 
         @stream.on 'close', =>
           if @started
@@ -201,7 +200,7 @@ class window.ScreenSharingReceiver extends Base
       return
     @started = true
 
-    _createClient()
+    @_createClient()
     @trigger 'start'
 
   ###*
@@ -213,7 +212,7 @@ class window.ScreenSharingReceiver extends Base
     @started = false
 
     @client.close() if @client
-    _init()
+    @_init()
     @trigger 'stop'
     
 
