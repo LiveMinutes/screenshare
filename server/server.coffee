@@ -119,11 +119,11 @@ class ScreenSharingServer
 
       room = @rooms[roomId]
 
-      if not _closeRoom(roomId)
-        room.transmitterEE.emit 'left'
-
       room.transmitter.removeAllListeners()
       room.transmitter = null
+
+      if not _closeRoom(roomId)
+        room.transmitterEE.emit 'left'
 
     ###
     * Add a room receiver
@@ -148,10 +148,10 @@ class ScreenSharingServer
       receiver._sendLeft = _sendLeft.bind(receiver)
       receiver._sendJoin = _sendJoin.bind(receiver)
 
-      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
-      room.transmitterEE.on 'frame', receiver._sendFrame
-      room.transmitterEE.on 'left', receiver._sendLeft
-      room.transmitterEE.on 'join', receiver._sendJoin
+      room.transmitterEE.addListener 'keyframe', receiver._sendKeyFrame
+      room.transmitterEE.addListener 'frame', receiver._sendFrame
+      room.transmitterEE.addListener 'left', receiver._sendLeft
+      room.transmitterEE.addListener 'join', receiver._sendJoin
 
       receiver.screenshareId = room.nextId
       room.receivers[receiver.screenshareId] = receiver
@@ -189,8 +189,12 @@ class ScreenSharingServer
       room = @rooms[roomId]
       if receiver and receiver.screenshareId?
         console.log 'Remove receiver', receiver.screenshareId, 'in room', roomId
-        receiver.removeAllListeners()
+        room.transmitterEE.removeListener 'keyframe', receiver._sendKeyFrame
+        room.transmitterEE.removeListener 'frame', receiver._sendFrame
+        room.transmitterEE.removeListener 'left', receiver._sendLeft
+        room.transmitterEE.removeListener 'join', receiver._sendJoin
         delete room.receivers[receiver.screenshareId]
+        receiver = null
         _closeRoom(roomId)
 
     ###
@@ -208,7 +212,7 @@ class ScreenSharingServer
     ###
     _sendFrame = (frame) ->     
       key = frame.x.toString() + frame.y.toString()
-      console.log 'Dispatch keyframe', key, 'to client', this.screenshareId
+      console.log 'Dispatch frame', key, 'to client', this.screenshareId
       if this.lastTimestamp? and key of this.lastTimestamp and this.lastTimestamp[key]? and parseInt(frame.t) > this.lastTimestamp[key]
         if _write this, frame
           console.log 'Frame', key ,'updated for pending request of receiver', this.screenshareId
