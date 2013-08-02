@@ -2,24 +2,6 @@
   * Screen transmitter
 ###
 class window.ScreenSharingTransmitter extends Base
-  ### Private members ###
-  _init = null
-  _snap = null
-  _dataURItoBlob = null
-  _canPlayHandler = null
-  _snapInterval = null
-  _processNetworkStatsInterval = null
-  _processNetworkStats = null
-  _getQuality = null
-  _equal = null
-  _export = null
-  _openHandler = null
-  _closeHandler = null
-  _errorHandler = null
-  _frameReceivedHandler = null
-  _onEndedHandler = null
-  _getUserMediaSuccess = null
-
   ### Defaults options ###
   defaults:
     exportFormat: 'image/jpeg'
@@ -56,7 +38,7 @@ class window.ScreenSharingTransmitter extends Base
     @video = document.createElement 'video'
     @video.autoplay = true
 
-    _init = =>
+    @_init = =>
       @keyframe = false
       @streaming = false
       @sending = 0
@@ -67,11 +49,11 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Process the network stats (frames to send / sent)
     ###
-    _processNetworkStats = =>
+    @_processNetworkStats = =>
       return if not @started
 
       if not @hasSent
-        _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
+        @_processNetworkStatsInterval = setTimeout @_processNetworkStats, 1000
         return
 
       if @sentFrameRate.length >= 5
@@ -95,14 +77,14 @@ class window.ScreenSharingTransmitter extends Base
       @hasSent = false
       @notSent = 0
 
-      _processNetworkStatsInterval = setTimeout _processNetworkStats, 1000
+      @_processNetworkStatsInterval = setTimeout @_processNetworkStats, 1000
 
     ###*
      * Return the correct quality regarding network quality and screen activity
      * @param {key} Frame's key
      * @return The correct quality
     ###
-    _getQuality = (key) =>
+    @_getQuality = (key) =>
       quality = @options.highQuality
 
       if @mismatchesCount?
@@ -132,7 +114,7 @@ class window.ScreenSharingTransmitter extends Base
      * @param {tolerance} Tolerance gap
      * @return True if equal, false otherwise
     ###
-    _equal = (a, b, tolerance) ->
+    @_equal = (a, b, tolerance) ->
       aData = a.data
       bData = b.data
       length = aData.length
@@ -151,7 +133,7 @@ class window.ScreenSharingTransmitter extends Base
      * @param {quality} Export quality
      * @return Base64 exported String
     ###
-    _export = (data, format, quality) =>
+    @_export = (data, format, quality) =>
       @exportCanvas.width = data.width
       @exportCanvas.height = data.height
       @exportCanvasCtx.putImageData data, 0, 0
@@ -163,9 +145,9 @@ class window.ScreenSharingTransmitter extends Base
      * - No key frame
      * - Estimated quality superior to prior
     ###
-    _processKeyFrame = =>
+    @_processKeyFrame = =>
       if @keyframe
-        keyframeQuality = _getQuality()
+        keyframeQuality = @_getQuality()
 
         if keyframeQuality <= @keyframeQuality
           return false
@@ -179,7 +161,7 @@ class window.ScreenSharingTransmitter extends Base
 
       keyFrame =
         k: true
-        d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, @keyframeQuality)
+        d: @_dataURItoBlob @cvs.toDataURL(@options.exportFormat, @keyframeQuality)
         w: @width
         h: @height
         t: new Date().getTime().toString()
@@ -198,7 +180,7 @@ class window.ScreenSharingTransmitter extends Base
      * - Mismatches detected
      * - Estimated quality superior to prior
     ###
-    _processFrame = (xOffset, yOffset) =>
+    @_processFrame = (xOffset, yOffset) =>
       key = xOffset.toString() + yOffset.toString()
       updatedFrame = null
         
@@ -206,7 +188,7 @@ class window.ScreenSharingTransmitter extends Base
       newFrame = @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
 
       if lastFrame and lastFrame.data
-        equal = _equal(newFrame, lastFrame.data)
+        equal = @_equal(newFrame, lastFrame.data)
         if not equal
           lastFrame.data = newFrame
           
@@ -215,7 +197,7 @@ class window.ScreenSharingTransmitter extends Base
           else
             @mismatchesCount[key]++
 
-        quality = _getQuality(key)
+        quality = @_getQuality(key)
 
         # console.log 'Mismatch',  @mismatchesCount[key] if @mismatchesCount? 
 
@@ -223,9 +205,9 @@ class window.ScreenSharingTransmitter extends Base
           console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
           
           lastFrame.quality = quality
-          data = _export newFrame, @options.exportFormat, quality
+          data = @_export newFrame, @options.exportFormat, quality
           updatedFrame =
-            d: _dataURItoBlob(data)
+            d: @_dataURItoBlob(data)
             x: xOffset
             y: yOffset
 
@@ -235,7 +217,7 @@ class window.ScreenSharingTransmitter extends Base
      * Process and send grids' frames
      * Reinit key frame if more than 80% of the screen has been modified
     ###
-    _processFrames = =>
+    @_processFrames = =>
       framesUpdates = []
 
       unless @mismatchesCount?
@@ -256,7 +238,7 @@ class window.ScreenSharingTransmitter extends Base
             stop = true
 
         if not stop
-          updatedFrame = _processFrame(xOffset, yOffset)
+          updatedFrame = @_processFrame(xOffset, yOffset)
 
           if updatedFrame?
             framesUpdates.push updatedFrame
@@ -281,16 +263,16 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Take a snapshot of each modified part of the screen
     ###
-    _snap = =>   
+    @_snap = =>   
       return if not @started
 
       if @stream and @stream.writable and (not @sending or @keyFrame)
         @ctx.drawImage @video, 0, 0, @width, @height
 
-        if not _processKeyFrame()
-          _processFrames()
+        if not @_processKeyFrame()
+          @_processFrames()
 
-      _snapInterval = setTimeout _snap, 10
+      @_snapInterval = setTimeout @_snap, 10
 
     ###*
      * Convert base64 to raw binary data held in a string.
@@ -298,7 +280,7 @@ class window.ScreenSharingTransmitter extends Base
      * @param {dataURI} ASCII Base64 string to encode
      * @return {ArrayBuffer} ArrayBuffer representing the input string in binary
     ###
-    _dataURItoBlob = (dataURI) ->
+    @_dataURItoBlob = (dataURI) ->
       byteString = undefined
       if dataURI.split(',')[0].indexOf('base64') >= 0
         byteString = atob(dataURI.split(',')[1])
@@ -323,40 +305,40 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Create and register handlers to binary client
     ###
-    _createBinaryClient = =>
+    @_createBinaryClient = =>
       if not @client
         @client = BinaryClient(@serverUrl)
 
-        @client.on 'open', _openHandler
-        @client.on 'close', _closeHandler
-        @client.on 'error', _errorHandler
+        @client.on 'open', @_openHandler
+        @client.on 'close', @_closeHandler
+        @client.on 'error', @_errorHandler
 
     ###*
      * Handler when client's connection opened
     ###
-    _openHandler = =>
+    @_openHandler = =>
       console.log 'Stream open'
       @stream = @client.createStream
         room: @room
         type: 'write'
 
-      @stream.on 'data', _frameReceivedHandler
-      @stream.on 'error', _errorHandler
+      @stream.on 'data', @_frameReceivedHandler
+      @stream.on 'error', @_errorHandler
 
-      @stream.on 'close', _closeHandler 
+      @stream.on 'close', @_closeHandler 
       @trigger 'open'
 
     ###*
      * Handler when client's connection closed
     ###
-    _closeHandler = =>
+    @_closeHandler = =>
       @stop()
       @trigger 'close'
 
     ###*
      * Handler when error
     ###
-    _errorHandler = (e) =>
+    @_errorHandler = (e) =>
       @stop()
       console.error e
       @trigger 'error', e
@@ -364,7 +346,7 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Handler when server respond to a frame
     ###
-    _frameReceivedHandler = (data) =>
+    @_frameReceivedHandler = (data) =>
       if data?
         console.log 'Received'
         @framesSent += data
@@ -373,7 +355,7 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Handler when screen stream is ready to play
     ###
-    _canPlayHandler = =>
+    @_canPlayHandler = =>
       @keyFrame = null
       @streaming = true
 
@@ -407,17 +389,17 @@ class window.ScreenSharingTransmitter extends Base
             return false
           return false
 
-      _snapInterval = setTimeout _snap, 0
-      _processNetworkStatsInterval = setTimeout _processNetworkStats, 0
+      @_snapInterval = setTimeout @_snap, 0
+      @_processNetworkStatsInterval = setTimeout @_processNetworkStats, 0
 
-      _createBinaryClient()
+      @_createBinaryClient()
 
       @trigger 'canplay'
 
     ###*
      * Handler when screen stream ends
     ###
-    _onEndedHandler = (e) =>
+    @_onEndedHandler = (e) =>
       console.debug 'onended'
       @trigger 'onended'  
       @stop()
@@ -425,14 +407,14 @@ class window.ScreenSharingTransmitter extends Base
     ###*
      * Handler when get user media request succeeds
     ###
-    _getUserMediaSuccess = (s) =>
+    @_getUserMediaSuccess = (s) =>
       @streaming = true
       @localStream = s
-      @localStream.onended = _onEndedHandler
+      @localStream.onended = @_onEndedHandler
 
       @video.src = window.URL.createObjectURL(@localStream)
 
-    _init()
+    @_init()
 
   ###*
    * Start transmission, ask get user media screen
@@ -443,7 +425,7 @@ class window.ScreenSharingTransmitter extends Base
 
     @started = true 
 
-    _init()
+    @_init()
 
     # Seems to only work over SSL.
     navigator.getUserMedia = navigator.webkitGetUserMedia or navigator.getUserMedia
@@ -453,12 +435,10 @@ class window.ScreenSharingTransmitter extends Base
           chromeMediaSource: 'screen'
           maxWidth: @width
           maxHeight: @height
-      width: screen.width
-      height: screen.height
-      _getUserMediaSuccess
-      _errorHandler
+      @_getUserMediaSuccess
+      @_errorHandler
 
-    @video.addEventListener 'canplay', _canPlayHandler, false
+    @video.addEventListener 'canplay', @_canPlayHandler, false
 
   ###*
    * Stop transmission, unregister events' handlers
@@ -469,19 +449,19 @@ class window.ScreenSharingTransmitter extends Base
 
     @started = false
 
-    _init()
+    @_init()
     
     # Unregister events handlers
     if @client?
-      @client.off 'open', _openHandler
-      @client.off 'close', _closeHandler
-      @client.off 'error', _errorHandler
+      @client.off 'open', @_openHandler
+      @client.off 'close', @_closeHandler
+      @client.off 'error', @_errorHandler
       @client.close()
       @client = null
 
     if @stream?
-      @stream.off 'data', _frameReceivedHandler
-      @stream.off 'error', _errorHandler
+      @stream.off 'data', @_frameReceivedHandler
+      @stream.off 'error', @_errorHandler
       @stream = null
 
     if @localStream
@@ -489,7 +469,7 @@ class window.ScreenSharingTransmitter extends Base
       @localStream.stop()
       @localStream = null
 
-    @video.removeEventListener 'canplay', _canPlayHandler
+    @video.removeEventListener 'canplay', @_canPlayHandler
 
       
 
