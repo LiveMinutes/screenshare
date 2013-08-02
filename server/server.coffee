@@ -294,6 +294,19 @@ if require.main == module
   console.log "Env", app.settings.env
   app.use express.static(path.join(__dirname, "public"))
 
+  if app.settings.env is 'development'
+    console.log 'Init heapdump / memwatch'
+    heapdump = require 'heapdump'
+    memwatch = require 'memwatch'
+
+    # Memwatch handlers
+    memwatch.on 'leak', (info) ->
+      console.warn info
+      heapdump.writeSnapshot();
+
+    memwatch.on 'stats', (stats) ->
+      console.log stats
+
   privateKey = fs.readFileSync(path.join(__dirname, 'cert/' + app.settings.env + '/privatekey.key')).toString()
   certificate = fs.readFileSync(path.join(__dirname,'cert/' + app.settings.env + '/certificate.crt')).toString()
   caPath = path.join(__dirname, 'cert/' + app.settings.env + '/ca.crt')

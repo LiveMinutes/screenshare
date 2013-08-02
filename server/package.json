@@ -10,7 +10,7 @@
     "forever": "~0.10.8",
     "binaryjs": "~0.1.8",
     "express": "~3.3.4",
-    "heapdump": "~0.2.1"
+    
   },
   "devDependencies": {
     "mocha": "~1.12.0",
@@ -25,6 +25,8 @@
     "grunt-contrib-copy": "~0.4.1",
     "grunt-shell": "~0.3.1",
     "supervisor": "~0.5.3",
-    "grunt-hub": "~0.5.0"
+    "grunt-hub": "~0.5.0",
+    "heapdump": "~0.2.1",
+    "memwatch": "~0.2.2"
   }
 }
