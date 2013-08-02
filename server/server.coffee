@@ -7,7 +7,7 @@ path = require 'path'
 
 class ScreenSharingServer
   defaultPort = 9001
-  maxClients = 5
+  defaultMaxClients = 5
 
   _onError = null
   _onStream = null
@@ -15,8 +15,9 @@ class ScreenSharingServer
   _setTransmitter = null
   _addReceiver = null
 
-  constructor: (port) ->
+  constructor: (port, maxClients) ->
     @port = port or defaultPort
+    @maxClients = maxClients or defaultMaxClients
     
     ###*
     * Handler error
@@ -259,12 +260,12 @@ class ScreenSharingServer
 
         # New receivers, only maxClients per room
         else if meta.type is 'read'
-          if Object.keys(@rooms[meta.room].receivers).length < maxClients
-            _addReceiver(meta.room, stream)
-            return
-          else
-            console.error 'Room full'
-            return
+          # if Object.keys(@rooms[meta.room].receivers).length < @maxClients
+          _addReceiver(meta.room, stream)
+            # return
+          # else
+            # console.error 'Room full'
+            # return
       else
         console.error 'Type is mandatory'
         return
