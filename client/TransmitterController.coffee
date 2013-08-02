@@ -443,6 +443,8 @@ class window.ScreenSharingTransmitter extends Base
 
     @started = true 
 
+    _init()
+
     # Seems to only work over SSL.
     navigator.getUserMedia = navigator.webkitGetUserMedia or navigator.getUserMedia
     navigator.getUserMedia
@@ -458,8 +460,6 @@ class window.ScreenSharingTransmitter extends Base
 
     @video.addEventListener 'canplay', _canPlayHandler, false
 
-    _init()
-
   ###*
    * Stop transmission, unregister events' handlers
   ###
@@ -469,6 +469,8 @@ class window.ScreenSharingTransmitter extends Base
 
     @started = false
 
+    _init()
+    
     # Unregister events handlers
     if @client?
       @client.off 'open', _openHandler
@@ -489,7 +491,6 @@ class window.ScreenSharingTransmitter extends Base
 
     @video.removeEventListener 'canplay', _canPlayHandler
 
-    _init()
       
 
 
