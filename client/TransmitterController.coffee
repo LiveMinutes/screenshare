@@ -26,8 +26,7 @@ class window.ScreenSharingTransmitter extends Base
     highQuality: 0.8
     mediumQuality: 0.3
     lowQuality: 0.1
-    width: false
-    height: false
+    maxWidth: 800
   
   ###*
    * Constructor
@@ -42,11 +41,11 @@ class window.ScreenSharingTransmitter extends Base
 
     # Retina support (devicePixelRatio == 2)
     if devicePixelRatio > 1
-      @options.width = screen.width
+      @width = screen.width
     else
-      @options.width = Math.min(800, screen.width)
+      @width = Math.min(@options.maxWidth, screen.width)
 
-    @options.height = screen.height / (screen.width/@options.width)
+    @height = screen.height / (screen.width/@width)
 
     @cvs = document.createElement 'canvas'
     @ctx = @cvs.getContext '2d'
@@ -181,8 +180,8 @@ class window.ScreenSharingTransmitter extends Base
       keyFrame =
         k: true
         d: _dataURItoBlob @cvs.toDataURL(@options.exportFormat, @keyframeQuality)
-        w: @options.width
-        h: @options.height
+        w: @width
+        h: @height
         t: new Date().getTime().toString()
 
       @mismatchesCount = null
@@ -250,10 +249,10 @@ class window.ScreenSharingTransmitter extends Base
       stop = false
       while not stop
         xOffset++
-        if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+        if @width - xOffset * @constructor.TILE_SIZE <= 0
           xOffset = 0
           yOffset++
-          if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+          if @height - yOffset * @constructor.TILE_SIZE <= 0
             stop = true
 
         if not stop
@@ -286,7 +285,7 @@ class window.ScreenSharingTransmitter extends Base
       return if not @started
 
       if @stream and @stream.writable and (not @sending or @keyFrame)
-        @ctx.drawImage @video, 0, 0, @options.width, @options.height
+        @ctx.drawImage @video, 0, 0, @width, @height
 
         if not _processKeyFrame()
           _processFrames()
@@ -378,10 +377,10 @@ class window.ScreenSharingTransmitter extends Base
       @keyFrame = null
       @streaming = true
 
-      @cvs.setAttribute 'width', @options.width
-      @cvs.setAttribute 'height', @options.height
+      @cvs.setAttribute 'width', @width
+      @cvs.setAttribute 'height', @height
 
-      @gridSize = Math.round(@options.width / @constructor.TILE_SIZE) * Math.round(@options.height / @constructor.TILE_SIZE)
+      @gridSize = Math.round(@width / @constructor.TILE_SIZE) * Math.round(@height / @constructor.TILE_SIZE)
 
       @framesSent = 0
       @framesToSend = 0
@@ -399,10 +398,10 @@ class window.ScreenSharingTransmitter extends Base
             data: @ctx.getImageData(xOffset * @constructor.TILE_SIZE, yOffset * @constructor.TILE_SIZE, @constructor.TILE_SIZE, @constructor.TILE_SIZE)
           
           xOffset++
-          if @options.width - xOffset * @constructor.TILE_SIZE <= 0
+          if @width - xOffset * @constructor.TILE_SIZE <= 0
             xOffset = 0
             yOffset++
-            if @options.height - yOffset * @constructor.TILE_SIZE <= 0
+            if @height - yOffset * @constructor.TILE_SIZE <= 0
               yOffset = 0
               return true
             return false
@@ -450,8 +449,8 @@ class window.ScreenSharingTransmitter extends Base
       video:
         mandatory:
           chromeMediaSource: 'screen'
-          maxWidth: @options.width
-          maxHeight: @options.height
+          maxWidth: @width
+          maxHeight: @height
       width: screen.width
       height: screen.height
       _getUserMediaSuccess
