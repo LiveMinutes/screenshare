@@ -1,3 +1,6 @@
+###*
+  * Screen transmitter
+###
 class window.ScreenSharingTransmitter extends Base
   ### Private members ###
   _init = null
@@ -155,6 +158,12 @@ class window.ScreenSharingTransmitter extends Base
       @exportCanvasCtx.putImageData data, 0, 0
       @exportCanvas.toDataURL format, quality
 
+    ###*
+     * Send a key frame if necessary
+     * Conditions: 
+     * - No key frame
+     * - Estimated quality superior to prior
+    ###
     _processKeyFrame = =>
       if @keyframe
         keyframeQuality = _getQuality()
@@ -184,6 +193,12 @@ class window.ScreenSharingTransmitter extends Base
 
       return true
 
+    ###*
+     * Process a frame at x,y 
+     * Updated conditions: 
+     * - Mismatches detected
+     * - Estimated quality superior to prior
+    ###
     _processFrame = (xOffset, yOffset) =>
       key = xOffset.toString() + yOffset.toString()
       updatedFrame = null
@@ -217,6 +232,10 @@ class window.ScreenSharingTransmitter extends Base
 
       return updatedFrame
 
+    ###*
+     * Process and send grids' frames
+     * Reinit key frame if more than 80% of the screen has been modified
+    ###
     _processFrames = =>
       framesUpdates = []
 
@@ -302,6 +321,9 @@ class window.ScreenSharingTransmitter extends Base
       # write the ArrayBuffer to a blob, and you're done
       ab
 
+    ###*
+     * Create and register handlers to binary client
+    ###
     _createBinaryClient = =>
       if not @client
         @client = BinaryClient(@serverUrl)
@@ -310,6 +332,9 @@ class window.ScreenSharingTransmitter extends Base
         @client.on 'close', _closeHandler
         @client.on 'error', _errorHandler
 
+    ###*
+     * Handler when client's connection opened
+    ###
     _openHandler = =>
       console.log 'Stream open'
       @stream = @client.createStream
@@ -322,21 +347,33 @@ class window.ScreenSharingTransmitter extends Base
       @stream.on 'close', _closeHandler 
       @trigger 'open'
 
+    ###*
+     * Handler when client's connection closed
+    ###
     _closeHandler = =>
       @stop()
       @trigger 'close'
 
+    ###*
+     * Handler when error
+    ###
     _errorHandler = (e) =>
       @stop()
       console.error e
       @trigger 'error', e
 
+    ###*
+     * Handler when server respond to a frame
+    ###
     _frameReceivedHandler = (data) =>
       if data?
         console.log 'Received'
         @framesSent += data
         @sending -= data
 
+    ###*
+     * Handler when screen stream is ready to play
+    ###
     _canPlayHandler = =>
       @keyFrame = null
       @streaming = true
@@ -378,11 +415,17 @@ class window.ScreenSharingTransmitter extends Base
 
       @trigger 'canplay'
 
+    ###*
+     * Handler when screen stream ends
+    ###
     _onEndedHandler = (e) =>
-      console.log 'onended'
+      console.debug 'onended'
       @trigger 'onended'  
       @stop()
 
+    ###*
+     * Handler when get user media request succeeds
+    ###
     _getUserMediaSuccess = (s) =>
       @streaming = true
       @localStream = s
@@ -392,7 +435,10 @@ class window.ScreenSharingTransmitter extends Base
 
     _init()
 
-  start: (e) ->
+  ###*
+   * Start transmission, ask get user media screen
+  ###
+  start: ->
     if @started
       return
 
@@ -415,6 +461,9 @@ class window.ScreenSharingTransmitter extends Base
 
     _init()
 
+  ###*
+   * Stop transmission, unregister events' handlers
+  ###
   stop: ->
     if not @started
       return
