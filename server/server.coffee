@@ -57,6 +57,26 @@ class ScreenSharingServer
       else
         console.error 'Room', roomId, 'does not exist'
 
+    ###
+    * Set a room transmitter
+    * @param {roomId} Room ID
+    * @param {transmitter} Stream transmitter
+    ###
+    _setTransmitter = (roomId, transmitter) =>
+      room = @rooms[roomId]
+
+      transmitter.screenshareId = 'transmitter'
+      console.log 'Set transmitter', transmitter.screenshareId, 'of room', roomId
+
+      transmitter.on 'close', -> _onTransmitterCloseHandler(roomId)
+      transmitter.on 'data', (data) -> _onTransmitterDataHandler(roomId, transmitter, data)
+      transmitter.on 'error', _onError
+
+      room.transmitter = transmitter
+
+      room.transmitterEE.emit 'join'
+      return true
+
     ###*
     * Handler when transmitter emit data
     * @param {room} The room
@@ -106,24 +126,38 @@ class ScreenSharingServer
       room.transmitter = null
 
     ###
-    * Set a room transmitter
+    * Add a room receiver
     * @param {roomId} Room ID
-    * @param {transmitter} Stream transmitter
+    * @param {receiver} Stream receiver to add
     ###
-    _setTransmitter = (roomId, transmitter) =>
+    _addReceiver = (roomId, receiver) =>
       room = @rooms[roomId]
 
-      transmitter.screenshareId = 'transmitter'
-      console.log 'Set transmitter', transmitter.screenshareId, 'of room', roomId
+      console.log 'Add receiver', room.nextId, 'in room', roomId
 
-      transmitter.on 'close', -> _onTransmitterCloseHandler(roomId)
-      transmitter.on 'data', (data) -> _onTransmitterDataHandler(roomId, transmitter, data)
-      transmitter.on 'error', _onError
+      if room.keyFrame
+        console.log 'Sending keyframe', room.keyFrame
+        _write receiver, room.keyFrame
 
-      room.transmitter = transmitter
+      receiver.on 'close', (-> _onReceiverCloseHandler roomId, receiver)
+      receiver.on 'data', ((data) -> _onReceiverDataHandler roomId, receiver, data)
+      receiver.on 'error', _onError
 
-      room.transmitterEE.emit 'join'
-      return true
+      receiver._sendFrame = _sendFrame.bind(receiver)
+      receiver._sendKeyFrame = _sendKeyFrame.bind(receiver)
+      receiver._sendLeft = _sendLeft.bind(receiver)
+      receiver._sendJoin = _sendJoin.bind(receiver)
+
+      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
+      room.transmitterEE.on 'frame', receiver._sendFrame
+      room.transmitterEE.on 'left', receiver._sendLeft
+      room.transmitterEE.on 'join', receiver._sendJoin
+
+      receiver.screenshareId = room.nextId
+      room.receivers[receiver.screenshareId] = receiver
+      room.nextId++
+
+      return receiver.screenshareId
 
     ###*
     * Handler when receiver emit data
@@ -158,40 +192,6 @@ class ScreenSharingServer
         receiver.removeAllListeners()
         delete room.receivers[receiver.screenshareId]
         _closeRoom(roomId)
-
-    ###
-    * Add a room receiver
-    * @param {roomId} Room ID
-    * @param {receiver} Stream receiver to add
-    ###
-    _addReceiver = (roomId, receiver) =>
-      room = @rooms[roomId]
-
-      console.log 'Add receiver', room.nextId, 'in room', roomId
-
-      if room.keyFrame
-        console.log 'Sending keyframe', room.keyFrame
-        _write receiver, room.keyFrame
-
-      receiver.on 'close', (-> _onReceiverCloseHandler roomId, receiver)
-      receiver.on 'data', ((data) -> _onReceiverDataHandler roomId, receiver, data)
-      receiver.on 'error', _onError
-
-      receiver._sendFrame = _sendFrame.bind(receiver)
-      receiver._sendKeyFrame = _sendKeyFrame.bind(receiver)
-      receiver._sendLeft = _sendLeft.bind(receiver)
-      receiver._sendJoin = _sendJoin.bind(receiver)
-
-      room.transmitterEE.on 'keyframe', receiver._sendKeyFrame
-      room.transmitterEE.on 'frame', receiver._sendFrame
-      room.transmitterEE.on 'left', receiver._sendLeft
-      room.transmitterEE.on 'join', receiver._sendJoin
-
-      receiver.screenshareId = room.nextId
-      room.receivers[receiver.screenshareId] = receiver
-      room.nextId++
-
-      return receiver.screenshareId
 
     ###
     * Send a key frame to a receiver
