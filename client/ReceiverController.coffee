@@ -84,6 +84,8 @@ class window.ScreenSharingReceiver extends Base
     * Ask to the server if new rectangles are available
     ###
     @_getRectangle = =>
+      return if not @started
+
       @xOffset++  
       if @width - @xOffset * @constructor.TILE_SIZE <= 0
         @xOffset = 0
@@ -96,12 +98,13 @@ class window.ScreenSharingReceiver extends Base
       @sending[key] = false unless key of @sending
       @timestamps[key] = @timestamp or -1 unless key of @timestamps
 
-      if not @sending[key]
+      if @stream? and not @sending[key]
         console.debug 'Asking frame', key
         @sending[key] = true
         @stream.write 
           key: key
           t: @timestamps[key].toString()
+
       setTimeout @_getRectangle, 10
 
     @_onDataHandler = (frame) =>
