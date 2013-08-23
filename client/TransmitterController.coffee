@@ -416,6 +416,13 @@ class window.ScreenSharingTransmitter extends Base
 
     @_init()
 
+    ###*
+     * Handler when get user media request succeeds
+    ###
+    @_getUserMediaError = (e) =>
+      @trigger 'getUserMediaError', e
+      @_errorHandler(e)
+
   ###*
    * Start transmission, ask get user media screen
   ###
@@ -436,7 +443,7 @@ class window.ScreenSharingTransmitter extends Base
           maxWidth: @width
           maxHeight: @height
       @_getUserMediaSuccess
-      @_errorHandler
+      @_getUserMediaError
 
     @video.addEventListener 'canplay', @_canPlayHandler, false
 
