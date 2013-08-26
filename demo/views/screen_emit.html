@@ -109,7 +109,8 @@
   <h2>Screenshare with getUserMedia()</h2>
   <section class="flexcenter">
     <div id="container"></div>
-    <button>Capture your screen</button>
+    <button id="btnCapture">Capture your screen</button>
+    <button id="btnScreenshotWindow">Take screenshot (new window method)</button>
     <div class="error"></div>
   </section>
 </article>
@@ -118,10 +119,11 @@
     var serverUrl = "wss://" + window.location.hostname + ":9001",
         room = '<%= room %>'
         container = document.querySelector("#container"),
-        button = document.querySelector("button"),
+        buttonCatpure = document.querySelector("#btnCapture"),
+        buttonScreenshotWindow = document.querySelector('#btnScreenshotWindow'),
         error = document.querySelector(".error");
 
-    new DemoEmit(serverUrl, room, button, container, error);
+    window.demoEmit = new DemoEmit(serverUrl, room, buttonCatpure, buttonScreenshotWindow, container, error);
 })()
 </script>
 <!--[if IE]>

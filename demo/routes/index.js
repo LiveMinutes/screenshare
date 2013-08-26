@@ -6,3 +6,7 @@ exports.emit = function(req, res){
 exports.receive = function(req, res){
     res.render('screen_down.html', { title: title, room: req.params.room});
 };
+
+exports.screenshot = function(req, res){
+    res.render('screen_shot.html', { title: title, room: req.params.room});
+};

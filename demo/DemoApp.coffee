@@ -27,6 +27,7 @@ class DemoApp
     @app.use express.errorHandler()  if "development" is @app.get("env")
     @app.get "/emit/:room", routes.emit
     @app.get "/receive/:room", routes.receive
+    @app.get "/screenshot/:room", routes.screenshot
 
   run: ->
     server = https.createServer(@options, @app).listen @app.get("port"), =>

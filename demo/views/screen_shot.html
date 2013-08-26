@@ -1,0 +1,20 @@
+<html>
+<head>
+    <title><%= title %></title>
+    <script src="/js/binary/binary.js"></script>
+    <script src="/js/receiver.js"></script>
+    <script src="/js/demo-client.js"></script>
+</head>
+<body>
+<button id="screenshotButton" style="float:left">Take screenshot</button>
+<canvas style="width:800px"></canvas>
+<script>
+    if (window.opener && window.opener.demoEmit) {
+        var transmitter = window.opener.demoEmit.transmitter;
+        document.querySelector('#screenshotButton').addEventListener('click', function () {
+            transmitter.trigger('screenshot');
+        });
+    }
+</script>
+</body>
+</html>
