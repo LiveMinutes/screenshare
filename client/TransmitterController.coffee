@@ -274,6 +274,11 @@ class window.ScreenSharingTransmitter extends Base
 
       @_snapInterval = setTimeout @_snap, 10
 
+    @_takeScreenshot = =>
+      screenshot = @ctx.getImageData(0, 0, @width, @height)
+      exportedScreenshot = @_export screenshot, @options.exportFormat, @options.highQuality
+      @trigger 'screenshot-result', exportedScreenshot
+
     ###*
      * Convert base64 to raw binary data held in a string.
      * Doesn't handle URLEncoded DataURIs
@@ -392,6 +397,8 @@ class window.ScreenSharingTransmitter extends Base
       @_snapInterval = setTimeout @_snap, 0
       @_processNetworkStatsInterval = setTimeout @_processNetworkStats, 0
 
+      @on 'screenshot', @_takeScreenshot
+
       @_createBinaryClient()
 
       @trigger 'canplay'
@@ -476,6 +483,7 @@ class window.ScreenSharingTransmitter extends Base
       @localStream.stop()
       @localStream = null
 
+    @off 'screenshot', @_takeScreenshot  
     @video.removeEventListener 'canplay', @_canPlayHandler
 
       
