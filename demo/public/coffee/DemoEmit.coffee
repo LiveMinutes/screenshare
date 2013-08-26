@@ -15,6 +15,9 @@ class window.DemoEmit
       @buttonCapture.removeEventListener 'click', _start
       @buttonCapture.addEventListener 'click', _stop
 
+      @buttonScreenshotWindow.style.display = 'block'
+      @buttonScreenshotNotification.style.display = 'block'
+
       @buttonScreenshotWindow.addEventListener 'click', _openScreenshotWindow
       @buttonScreenshotNotification.addEventListener 'click', _openScreenshotNotification
 
@@ -72,6 +75,9 @@ class window.DemoEmit
       @buttonCapture.removeEventListener 'click', _stop
       @buttonCapture.addEventListener 'click', _start
       @buttonCapture.textContent = 'Capture your screen'
+
+      @buttonScreenshotWindow.style.display = 'none'
+      @buttonScreenshotNotification.style.display = 'none'
 
       @buttonScreenshotWindow.removeEventListener 'click', _openScreenshotWindow
       @buttonScreenshotNotification.removeEventListener 'click', _openScreenshotNotification
