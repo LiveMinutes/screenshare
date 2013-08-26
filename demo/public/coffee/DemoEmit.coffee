@@ -53,17 +53,19 @@ class window.DemoEmit
         @notification.onclick = =>
           @transmitter.trigger 'screenshot'
           @notification.cancel()
-          @notification = null
-          _openScreenshotNotification()
 
         @notification.onclose = =>
           @notification = null
+          _openScreenshotNotification() if @started
 
         @notification.show()
       else
         window.webkitNotifications.requestPermission(_openScreenshotNotification)
 
     _start= =>
+      return if @started
+      @started = true 
+
       @transmitter.on 'open', _socketOpenHandler
       @transmitter.on 'close', _socketCloseHandler
       @transmitter.on 'error', _socketCloseHandler
@@ -72,6 +74,9 @@ class window.DemoEmit
       @transmitter.start()
 
     _stop= =>
+      return if not @started
+      @started = false
+
       @buttonCapture.removeEventListener 'click', _stop
       @buttonCapture.addEventListener 'click', _start
       @buttonCapture.textContent = 'Capture your screen'
