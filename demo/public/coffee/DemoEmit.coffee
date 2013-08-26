@@ -5,7 +5,7 @@ class window.DemoEmit
   _socketCloseHandler = null
   _showErrorMsg = null
 
-  constructor: (serverUrl, room, buttonCapture, buttonScreenshotWindow, container, error) ->
+  constructor: (serverUrl, room, buttonCapture, buttonScreenshotWindow, buttonScreenshotNotification, container, error) ->
     _showErrorMsg = (msg) =>
       @error.textContent = msg
       @error.classList.add 'show'
@@ -16,6 +16,7 @@ class window.DemoEmit
       @buttonCapture.addEventListener 'click', _stop
 
       @buttonScreenshotWindow.addEventListener 'click', _openScreenshotWindow
+      @buttonScreenshotNotification.addEventListener 'click', _openScreenshotNotification
 
     _socketCloseHandler = =>
       _stop()
@@ -39,6 +40,26 @@ class window.DemoEmit
       #@transmitter.trigger('screenshot')
       window.open '/screenshot/' + room, '', 'width=200,height=100'
 
+    _openScreenshotNotification = =>
+      return if @notification
+      havePermission = window.webkitNotifications.checkPermission()
+      if havePermission is 0
+        # 0 is PERMISSION_ALLOWED
+        @notification = window.webkitNotifications.createNotification("", window.document.title, "Take screenshot")
+        
+        @notification.onclick = =>
+          @transmitter.trigger 'screenshot'
+          @notification.cancel()
+          @notification = null
+          _openScreenshotNotification()
+
+        @notification.onclose = =>
+          @notification = null
+
+        @notification.show()
+      else
+        window.webkitNotifications.requestPermission(_openScreenshotNotification)
+
     _start= =>
       @transmitter.on 'open', _socketOpenHandler
       @transmitter.on 'close', _socketCloseHandler
@@ -53,6 +74,11 @@ class window.DemoEmit
       @buttonCapture.textContent = 'Capture your screen'
 
       @buttonScreenshotWindow.removeEventListener 'click', _openScreenshotWindow
+      @buttonScreenshotNotification.removeEventListener 'click', _openScreenshotNotification
+
+      if @notification?
+        @notification.cancel()
+        @notification = null
 
       @transmitter.off 'open', _socketOpenHandler
       @transmitter.off 'close', _socketCloseHandler
@@ -63,6 +89,7 @@ class window.DemoEmit
     @transmitter = new ScreenSharingTransmitter serverUrl, room
     @buttonCapture = buttonCapture
     @buttonScreenshotWindow = buttonScreenshotWindow
+    @buttonScreenshotNotification = buttonScreenshotNotification
     @container = container
     @error = error
     @buttonCapture.addEventListener 'click', _start

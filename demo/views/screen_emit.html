@@ -111,6 +111,7 @@
     <div id="container"></div>
     <button id="btnCapture">Capture your screen</button>
     <button id="btnScreenshotWindow">Take screenshot (new window method)</button>
+    <button id="btnScreenshotNotification">Take screenshot (Chrome notification)</button>
     <div class="error"></div>
   </section>
 </article>
@@ -121,9 +122,10 @@
         container = document.querySelector("#container"),
         buttonCatpure = document.querySelector("#btnCapture"),
         buttonScreenshotWindow = document.querySelector('#btnScreenshotWindow'),
+        buttonScreenshotNotification = document.querySelector('#btnScreenshotNotification'),
         error = document.querySelector(".error");
 
-    window.demoEmit = new DemoEmit(serverUrl, room, buttonCatpure, buttonScreenshotWindow, container, error);
+    window.demoEmit = new DemoEmit(serverUrl, room, buttonCatpure, buttonScreenshotWindow, buttonScreenshotNotification, container, error);
 })()
 </script>
 <!--[if IE]>
