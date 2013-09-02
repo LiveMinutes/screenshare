@@ -22,14 +22,16 @@ class DemoApp
     @app.use express.methodOverride()
     @app.use @app.router
     @app.use express.static(path.join(__dirname, "public"))
+    @app.use express.bodyParser({uploadDir: path.join(__dirname, "public", "uploads")});
 
     # development only
     @app.use express.errorHandler()  if "development" is @app.get("env")
     @app.get "/emit/:room", routes.emit
     @app.get "/receive/:room", routes.receive
-    @app.get "/screenshot/:room", routes.screenshot
+    @app.post "/screenshot/:room", routes.screenshot
 
   run: ->
+    fs.mkdirSync path.join(__dirname, "public", "images")
     server = https.createServer(@options, @app).listen @app.get("port"), =>
       console.log "Express server listening on port " + @app.get("port")
 

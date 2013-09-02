@@ -36,8 +36,16 @@ class window.DemoEmit
 
       @error.classList.add 'show'
     
-    _screenshotResult = (screenshot) =>
-      window.open(screenshot)      
+    _screenshotResult = (screenshot) =>      
+      form = new FormData()
+      request = new XMLHttpRequest()
+      form.append "blob", new Blob([@transmitter._dataURItoBlob(screenshot)], { type: 'image/jpeg' })
+      request.open "POST", "/screenshot/" + room, true
+      request.onreadystatechange = ->
+        return if request.readyState isnt 4
+        serverResponse = JSON.parse(request.responseText)
+        window.open(['/images', room, serverResponse.fileName].join('/')) if serverResponse.fileName
+      request.send(form)   
 
     _openScreenshotWindow = =>
       #@transmitter.trigger('screenshot')
