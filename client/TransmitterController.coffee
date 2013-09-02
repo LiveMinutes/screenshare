@@ -276,7 +276,7 @@ class window.ScreenSharingTransmitter extends Base
 
     @_takeScreenshot = =>
       screenshot = @ctx.getImageData(0, 0, @width, @height)
-      exportedScreenshot = @_export screenshot, @options.exportFormat, @options.highQuality
+      exportedScreenshot = @_export screenshot, @options.exportFormat, 1.0
       @trigger 'screenshot-result', exportedScreenshot
 
     ###*
