@@ -1,13 +1,19 @@
 BinaryServer = require('binaryjs').BinaryServer
 EventEmitter = require('events').EventEmitter
+Base = require('./Base').Base
+
 fs = require 'fs'
 https = require 'https'
 express = require 'express'
 path = require 'path'
 
-class ScreenSharingServer
-  defaultPort = 9001
-  defaultMaxClients = 5
+screenshare = exports? and @
+
+class screenshare.ScreenSharingServer extends Base
+  ### Defaults options ###
+  defaults:
+    port: 9001
+    maxClients: 5
 
   _onError = null
   _onStream = null
@@ -16,9 +22,9 @@ class ScreenSharingServer
   _addReceiver = null
 
   constructor: (port, maxClients) ->
-    @port = port or defaultPort
-    @maxClients = maxClients or defaultMaxClients
-    
+    @port = port or @defaults.port
+    @maxClients = maxClients or @defaults.maxClients
+
     ###*
     * Handler error
     * @param {error} The error object
@@ -107,7 +113,7 @@ class ScreenSharingServer
           room.frames[key] = frame
           room.transmitterEE.emit 'frame', frame
 
-        _write transmitter, 1
+        _write transmitter, Base.SIGNALS.SERVER_FRAME_RECEIVED
 
         room.processFrames = false
 
@@ -171,13 +177,18 @@ class ScreenSharingServer
       room = @rooms[roomId]
       
       if room
-        key = data.key
-        timestamp = parseInt(data.t)
+        # Screenshot request
+        if data is Base.SIGNALS.RECEIVER_SCREENSHOT_REQUEST
+          console.log 'Client', receiver.screenshareId, 'has requested a screenshot'
+          _write room.transmitter, data
+        else if 'key' in data and 't' in data
+          key = data.key
+          timestamp = parseInt(data.t)
 
-        console.log 'Storing client', receiver.screenshareId, 'timestamp', timestamp, 'for key', key
-        if not receiver.lastTimestamp
-          receiver.lastTimestamp = {}
-        receiver.lastTimestamp[key] = timestamp
+          console.log 'Storing client', receiver.screenshareId, 'timestamp', timestamp, 'for key', key
+          if not receiver.lastTimestamp
+            receiver.lastTimestamp = {}
+          receiver.lastTimestamp[key] = timestamp
 
     ###*
     * Handler when receiver leave
@@ -220,18 +231,16 @@ class ScreenSharingServer
     ###
     _sendLeft = ->
       # Signal to each client that transmitter has left
-      console.log 'Sending transmitter left signal to', this.screenshareId
-      _write this, 0
+      console.log 'Sending transmitter left signal', Base.SIGNALS.TRANSMITTER_LEFT, 'to', this.screenshareId
+      _write this, Base.SIGNALS.TRANSMITTER_LEFT
 
     ###
     * Send a transmitter left signal to a receiver
     ###
     _sendJoin = ->
       # Signal to each client that transmitter has left
-      console.log 'Sending transmitter join signal to', this.screenshareId
-      _write this, 1
-
-
+      console.log 'Sending transmitter join signal', Base.SIGNALS.TRANSMITTER_JOIN ,'to', this.screenshareId
+      _write this, Base.SIGNALS.TRANSMITTER_JOIN
 
     _onStream = (stream, meta) =>
       if meta.type
@@ -279,8 +288,6 @@ class ScreenSharingServer
     @rooms = {}
     return @binaryServer
 
-exports.ScreenSharingServer = ScreenSharingServer
-
 if require.main == module
   process.on 'uncaughtException', (err) ->
     console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
@@ -305,7 +312,7 @@ if require.main == module
 
   server = https.createServer(options,app)
 
-  screensharingServer = new ScreenSharingServer()
+  screensharingServer = new screenshare.ScreenSharingServer()
   screensharingServer.run server
 
   console.log 'Listen on port', screensharingServer.port

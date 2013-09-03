@@ -1,4 +1,6 @@
-class window.ScreenSharingReceiver extends Base
+screenshare = @screenshare? and @screenshare or @screenshare = {}
+
+class screenshare.ScreenSharingReceiver extends screenshare.Base
   ###*
    * Constructor
    * @param {serverUrl} URL to the Binary server
@@ -81,6 +83,12 @@ class window.ScreenSharingReceiver extends Base
       image.src = frame.d
 
     ###*
+    * Request a screenshot to the room's transmitter
+    ###
+    @_requestScreenshot = =>
+      @stream.write @constructor.SIGNALS.RECEIVER_SCREENSHOT_REQUEST
+
+    ###*
     * Ask to the server if new rectangles are available
     ###
     @_getRectangle = =>
@@ -111,9 +119,9 @@ class window.ScreenSharingReceiver extends Base
       console.log frame
 
       if frame? and @started
-        if frame is 0
+        if frame is @constructor.SIGNALS.TRANSMITTER_LEFT
           @trigger 'transmitterLeft'
-        else if frame is 1
+        else if frame is @constructor.SIGNALS.TRANSMITTER_JOIN
           @trigger 'transmitterJoin'
         else 
           frame.t = parseInt(frame.t)
@@ -138,6 +146,7 @@ class window.ScreenSharingReceiver extends Base
                   console.debug "Start _getRectangle"
                   setTimeout @_getRectangle, 0
                   @trigger 'firstKeyframe'
+                  @on 'screenshot', @_requestScreenshot
 
                 @timestamp = frame.t
               )
@@ -204,6 +213,8 @@ class window.ScreenSharingReceiver extends Base
     if not @started
       return
     @started = false
+
+    @off 'screenshot', @_requestScreenshot
 
     @client.close() if @client
     @_init()

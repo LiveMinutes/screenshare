@@ -1,4 +1,6 @@
-class window.DemoEmit
+screenshare = @screenshare? and @screenshare or @screenshare = {}
+
+class screenshare.DemoEmit
   _start = null
   _stop = null
   _socketOpenHandler = null
@@ -105,7 +107,7 @@ class window.DemoEmit
       @transmitter.off 'screenshot-result', _screenshotResult
       @transmitter.stop()
 
-    @transmitter = new ScreenSharingTransmitter serverUrl, room
+    @transmitter = new screenshare.ScreenSharingTransmitter serverUrl, room
     @buttonCapture = buttonCapture
     @buttonScreenshotWindow = buttonScreenshotWindow
     @buttonScreenshotNotification = buttonScreenshotNotification

@@ -1,21 +1,29 @@
-class window.DemoReceive extends Base
+screenshare = @screenshare? and @screenshare or @screenshare = {}
+
+class screenshare.DemoReceive
 	_start = null
 	_stop = null
 	_openHandler = null
 	
-	constructor: (serverUrl, room, button, canvas) ->
-		@receiver = new ScreenSharingReceiver serverUrl, room, canvas
-		@button = button
+	constructor: (serverUrl, room, startButton, screenshotButton, canvas) ->
+		@receiver = new screenshare.ScreenSharingReceiver serverUrl, room, canvas
+		@startButton = startButton
+		@screenshotButton = screenshotButton
 		@canvas = canvas
 		@canvas.style.display = "none";
 
 		_firstKeyframeHandler = =>
 			@canvas.style.display = "block";
 
+		_requestScreenshot = =>
+			@receiver.trigger 'screenshot'
+
 		_endHandler = =>
-			@button.removeEventListener 'click', _stop
-			@button.addEventListener 'click', _start
-			@button.textContent = 'Join session'
+			@startButton.removeEventListener 'click', _stop
+			@startButton.addEventListener 'click', _start
+			@startButton.textContent = 'Join session'
+
+			@screenshotButton.removeEventListener 'click', _requestScreenshot
 
 			@canvas.style.display = "none";
 
@@ -28,9 +36,11 @@ class window.DemoReceive extends Base
 			console.log 'Transmitter has joined'
 
 		_start= =>	
-			@button.textContent = 'Leave session'
-			@button.removeEventListener 'click', _start
-			@button.addEventListener 'click', _stop
+			@startButton.textContent = 'Leave session'
+			@startButton.removeEventListener 'click', _start
+			@startButton.addEventListener 'click', _stop
+
+			@screenshotButton.addEventListener 'click', _requestScreenshot
 
 			@receiver.on 'firstKeyframe', _firstKeyframeHandler
 			@receiver.on 'transmitterLeft', _transmitterLeftHandler
@@ -43,4 +53,4 @@ class window.DemoReceive extends Base
 			_endHandler()
 			@receiver.stop()
 
-		@button.addEventListener 'click', _start
+		@startButton.addEventListener 'click', _start

@@ -1,5 +1,14 @@
-class window.Base
+screenshare = (exports? and @) or (@screenshare? and @screenshare or @screenshare = {})
+
+class screenshare.Base
   @TILE_SIZE: 256
+
+  @SIGNALS:
+    SERVER_FRAME_RECEIVED: 0
+    TRANSMITTER_LEFT: 1
+    TRANSMITTER_JOIN: 2
+    RECEIVER_SCREENSHOT_REQUEST: 3
+
   defaults: {}
 
   constructor: (options) ->

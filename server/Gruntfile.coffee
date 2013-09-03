@@ -26,7 +26,7 @@ module.exports = (grunt) ->
             options:
               bare:true
             files:
-                "<%=dest%>/server.js": ["server.coffee"]
+                "<%=dest%>/server.js": ["../common/Base.coffee", "server.coffee"]
 
       cafemocha:
         testThis:
@@ -47,6 +47,13 @@ module.exports = (grunt) ->
             {
               expand: true # includes files in path and its subdirs
               src: ["package.json"]
+              dest: "<%=dest%>/"
+            }
+            ,
+            {
+              expand: true,
+              flatten:true,
+              src: ["../common/Base.coffee"]
               dest: "<%=dest%>/"
             }
             ,

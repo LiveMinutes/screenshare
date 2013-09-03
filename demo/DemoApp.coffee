@@ -4,7 +4,9 @@ routes = require('./routes')
 https = require('https')
 path = require('path')
 
-class DemoApp
+screenshare = exports? and @
+
+class screenshare.DemoApp
   defaultPort = 3000
   constructor: ->
     @app = express()
@@ -36,4 +38,4 @@ class DemoApp
       console.log "Express server listening on port " + @app.get("port")
 
 if require.main == module
-  new DemoApp().run()
+  new screenshare.DemoApp().run()

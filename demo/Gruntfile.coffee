@@ -58,7 +58,7 @@ module.exports = (grunt) ->
               bare: true
           demoClient:
               files:
-                  "<%=dest%>/public/js/demo-client.js": ["../client/Base.coffee", "public/coffee/*.coffee"]
+                  "<%=dest%>/public/js/demo-client.js": ["public/coffee/*.coffee"]
           demoServer:
             files:
               "<%=dest%>/demo-server.js": ["DemoApp.coffee"]

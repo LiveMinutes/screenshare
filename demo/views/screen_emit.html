@@ -5,6 +5,7 @@
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet" type="text/css">
     <link href="https://html5-demos.appspot.com/static/common.css" rel="stylesheet" type="text/css">
     <script src="/js/binary/binary.js"></script>
+    <script src="/js/base.js"></script>
     <script src="/js/transmitter.js"></script>
     <script src="/js/demo-client.js"></script>
     <title><%= title %></title>
@@ -129,7 +130,7 @@
         buttonScreenshotNotification = document.querySelector('#btnScreenshotNotification'),
         error = document.querySelector(".error");
 
-    window.demoEmit = new DemoEmit(serverUrl, room, buttonCatpure, buttonScreenshotWindow, buttonScreenshotNotification, container, error);
+    window.demoEmit = new screenshare.DemoEmit(serverUrl, room, buttonCatpure, buttonScreenshotWindow, buttonScreenshotNotification, container, error);
 })()
 </script>
 <!--[if IE]>

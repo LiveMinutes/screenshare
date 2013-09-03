@@ -1,7 +1,9 @@
+screenshare = @screenshare? and @screenshare or @screenshare = {}
+
 ###*
   * Screen transmitter
 ###
-class window.ScreenSharingTransmitter extends Base
+class screenshare.ScreenSharingTransmitter extends screenshare.Base
   ### Defaults options ###
   defaults:
     exportFormat: 'image/jpeg'
@@ -352,10 +354,12 @@ class window.ScreenSharingTransmitter extends Base
      * Handler when server respond to a frame
     ###
     @_frameReceivedHandler = (data) =>
-      if data?
-        console.log 'Received'
-        @framesSent += data
-        @sending -= data
+      if data is @constructor.SIGNALS.SERVER_FRAME_RECEIVED
+        console.debug 'Received'
+        @framesSent++
+        @sending--
+      else if data is @constructor.SIGNALS.RECEIVER_SCREENSHOT_REQUEST
+        @_takeScreenshot()
 
     ###*
      * Handler when screen stream is ready to play

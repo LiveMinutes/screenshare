@@ -17,12 +17,15 @@ module.exports = (grunt) ->
       coffee:
           options:
               join: true
+          base:
+              files:
+                  "<%=dest%>/base.js": ["../common/Base.coffee"]
           transmitter:
               files:
-                  "<%=dest%>/transmitter.js": ["Base.coffee", "TransmitterController.coffee"]
+                  "<%=dest%>/transmitter.js": ["TransmitterController.coffee"]
           receiver:
             files:
-              "<%=dest%>/receiver.js": ["Base.coffee", "ReceiverController.coffee"]
+              "<%=dest%>/receiver.js": ["ReceiverController.coffee"]
 
       cafemocha:
         testThis:
@@ -33,11 +36,11 @@ module.exports = (grunt) ->
 
       uglify:
           transmitter:
-              files:
-                  "<%=dest%>/transmitter.min.js": "<%=dest%>/transmitter.js"
+            files:
+                "<%=dest%>/transmitter.min.js": ["<%=dest%>/base.js", "<%=dest%>/transmitter.js"]
           receiver:
             files:
-              "<%=dest%>/receiver.min.js": "<%=dest%>/receiver.js"
+              "<%=dest%>/receiver.min.js": ["<%=dest%>/base.js", "<%=dest%>/receiver.js"]
 
 
       watch:
