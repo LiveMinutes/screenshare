@@ -268,9 +268,9 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
     @_snap = =>   
       return if not @started
 
+      @ctx.drawImage @video, 0, 0, @width, @height
+      
       if @stream and @stream.writable and (not @sending or @keyFrame)
-        @ctx.drawImage @video, 0, 0, @width, @height
-
         if not @_processKeyFrame()
           @_processFrames()
 
