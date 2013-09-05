@@ -269,7 +269,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
       return if not @started
 
       @ctx.drawImage @video, 0, 0, @width, @height
-      
+
       if @stream and @stream.writable and (not @sending or @keyFrame)
         if not @_processKeyFrame()
           @_processFrames()
@@ -277,9 +277,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
       @_snapInterval = setTimeout @_snap, 10
 
     @_takeScreenshot = =>
-      screenshot = @ctx.getImageData(0, 0, @width, @height)
-      exportedScreenshot = @_export screenshot, @options.exportFormat, 1.0
-      @trigger 'screenshot-result', exportedScreenshot
+      @trigger 'screenshot-result', @cvs.toDataURL @options.exportFormat, 1.0
 
     ###*
      * Convert base64 to raw binary data held in a string.
