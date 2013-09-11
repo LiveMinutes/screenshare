@@ -78,6 +78,6 @@ module.exports = (grunt) ->
               options:
                   nospawn: true
 
-    grunt.registerTask "build", ["clean:build", "hub:client", "copy", "coffee", "uglify"]
+    grunt.registerTask "build", ["clean:build", "hub:client", "copy", "coffee"]
     grunt.registerTask "start", ["shell:npm", "shell:start"]
     grunt.registerTask "default", ["build", "start"]

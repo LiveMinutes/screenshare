@@ -13,6 +13,7 @@ module.exports = (grunt) ->
 
       clean:
           build: ["<%=dest%>"]
+          unminified: ["<%=dest%>/base.js", "<%=dest%>/transmitter.js", "<%=dest%>/receiver.js"]
 
       coffee:
           options:
@@ -50,5 +51,7 @@ module.exports = (grunt) ->
               options:
                   nospawn: true
 
-    grunt.registerTask "build", ["clean:build", "coffee", "uglify"]
+    grunt.registerTask "build", ["clean:build", "coffee"]
+    grunt.registerTask "build:dev", ["build"]
+    grunt.registerTask "build:production", ["build", "uglify", "clean:unminified"]
     grunt.registerTask "default", ["build"]

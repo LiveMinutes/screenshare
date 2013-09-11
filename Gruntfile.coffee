@@ -25,21 +25,21 @@ module.exports = (grunt) ->
         command: 'npm install'
 
     hub:
-      server:
+      buildServerDev:
         src: ['./server/Gruntfile.coffee']
-        tasks: ['build']
+        tasks: ['build:dev']
+
+      buildServerProduction:
+        src: ['./server/Gruntfile.coffee']
+        tasks: ['build:production']
 
       runServerProduction:
         src: ['./server/Gruntfile.coffee']
-        tasks: ['start-production']
+        tasks: ['start:production']
 
       runServerDev:
         src: ['./server/Gruntfile.coffee']
-        tasks: ['start-dev']
-
-      client:
-        src: ['./client/Gruntfile.coffee']
-        tasks: ['build']
+        tasks: ['start:dev']
 
       demo:
         src: ['./demo/Gruntfile.coffee']
@@ -50,7 +50,8 @@ module.exports = (grunt) ->
         tasks: ['start']
 
   grunt.registerTask "install", ["shell"]
-  grunt.registerTask "build:server", ["hub:server"]
+  grunt.registerTask "build:server:dev", ["hub:buildServerDev"]
+  grunt.registerTask "build:server:production", ["hub:buildServerProduction"]
   grunt.registerTask "build:demo", ["hub:demo"]
   grunt.registerTask "run:server:production", ["hub:runServerProduction"]
   grunt.registerTask "run:server:dev", ["hub:runServerDev"]

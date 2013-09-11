@@ -17,9 +17,12 @@ module.exports = (grunt) ->
           build: ["<%=dest%>"]
 
       hub:
-        client:
+        clientDev:
           src: ['../client/Gruntfile.coffee']
-          tasks: ['build']
+          tasks: ['build:dev']
+        clientProduction:
+          src: ['../client/Gruntfile.coffee']
+          tasks: ['build:production']
 
       coffee:
           server:
@@ -107,8 +110,9 @@ module.exports = (grunt) ->
               options:
                   nospawn: true
 
-    grunt.registerTask "build", ["clean:build", "hub:client", "copy"]
-    grunt.registerTask "build-js", ["clean:build", "hub:client", "copy:main", "coffee"]
-    grunt.registerTask "start-production", ["shell:npm", "shell:startProduction"]
-    grunt.registerTask "start-dev", ["shell:npm", "shell:startDev"]
-    grunt.registerTask "default", ["build", "start"]
+    grunt.registerTask "build:dev", ["clean:build", "hub:clientDev", "copy"]
+    grunt.registerTask "build:production", ["clean:build", "hub:clientProduction", "copy"]
+    grunt.registerTask "build:js", ["clean:build", "hub:clientProduction", "copy:main", "coffee"]
+    grunt.registerTask "start:production", ["shell:npm", "shell:startProduction"]
+    grunt.registerTask "start:dev", ["shell:npm", "shell:startDev"]
+    grunt.registerTask "default", ["build:dev", "start"]
