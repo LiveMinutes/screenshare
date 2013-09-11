@@ -8,7 +8,7 @@ screenshare
 3. *(Optional) install forever globally: `npm install -g forever`*
 
 #Build/run server
-1. Launch `grunt build:server run:server:<env>` (<env>:production/dev)
+1. Launch `grunt build:server:<env> run:server:<env>` (<env>:production/dev)
 
 #Build/run demo
 
