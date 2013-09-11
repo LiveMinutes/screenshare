@@ -107,7 +107,7 @@ class screenshare.ScreenSharingReceiver extends screenshare.Base
       @timestamps[key] = @timestamp or -1 unless key of @timestamps
 
       if @stream? and not @sending[key]
-        console.debug 'Asking frame', key
+        DEBUG && console.debug 'Asking frame', key
         @sending[key] = true
         @stream.write 
           key: key
@@ -116,7 +116,7 @@ class screenshare.ScreenSharingReceiver extends screenshare.Base
       setTimeout @_getRectangle, 10
 
     @_onDataHandler = (frame) =>
-      console.log frame
+      DEBUG && console.log frame
 
       if frame? and @started
         if frame is @constructor.SIGNALS.TRANSMITTER_LEFT
@@ -129,21 +129,21 @@ class screenshare.ScreenSharingReceiver extends screenshare.Base
           frame.d = 'data:image/jpeg;base64,' + @_arrayBufferToBase64(frame.d)
 
           now = new Date().getTime()
-          console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
-          console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
+          DEBUG && console.log 'Latence from transmitter now', now, 'and', frame.t, (now - frame.t)/1000, 's'
+          DEBUG && console.log 'Latence from server now', now, 'and', frame.t, (now - frame.ts)/1000, 's'
 
           if frame.k
             if frame.t > @timestamp
-              console.debug "Keyframe"
+              DEBUG && console.debug "Keyframe"
               
               @_drawKeyFrame frame, (=> 
-                console.debug "Drawn keyFrame"
+                DEBUG && console.debug "Drawn keyFrame"
 
                 @timestamps = {}  
                 @sending = {}
 
                 if @timestamp is -1
-                  console.debug "Start _getRectangle"
+                  DEBUG && console.debug "Start _getRectangle"
                   setTimeout @_getRectangle, 0
                   @trigger 'firstKeyframe'
                   @on 'screenshot', @_requestScreenshot
@@ -186,7 +186,7 @@ class screenshare.ScreenSharingReceiver extends screenshare.Base
         @trigger 'open'
 
       @client.on 'error', (e) =>
-        console.log 'error', e
+        console.error 'error', e
         @stop()
         @trigger 'error', e
 

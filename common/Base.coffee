@@ -1,3 +1,5 @@
+DEBUG = true  if typeof DEBUG is "undefined" # will be removed
+  
 screenshare = (exports? and @) or (@screenshare? and @screenshare or @screenshare = {})
 
 class screenshare.Base

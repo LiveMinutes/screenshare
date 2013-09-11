@@ -36,6 +36,12 @@ module.exports = (grunt) ->
             require: ["should"]
 
       uglify:
+          options:
+            compress:
+              global_defs:
+                "DEBUG": false
+              dead_code: true
+
           transmitter:
             files:
                 "<%=dest%>/transmitter.min.js": ["<%=dest%>/base.js", "<%=dest%>/transmitter.js"]

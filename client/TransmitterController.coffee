@@ -59,7 +59,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
         return
 
       if @sentFrameRate.length >= 5
-        console.log 'Reset network'
+        DEBUG && console.log 'Reset network'
         @sentFrameRate.length = 0 
         @avgSendFrames = 0
 
@@ -73,8 +73,8 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
         sum = @sentFrameRate.reduce (t, s) -> t + s
         @avgSendFrames = sum/@sentFrameRate.length
 
-      console.log 'Sent frames:', ratioSent
-      console.log 'Avg:', @avgSendFrames
+      DEBUG && console.log 'Sent frames:', ratioSent
+      DEBUG && console.log 'Avg:', @avgSendFrames
 
       @hasSent = false
       @notSent = 0
@@ -93,18 +93,18 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
         if key
           if key of @mismatchesCount
             if @mismatchesCount[key] >= 2 or (@avgSendFrames > 0 and @avgSendFrames <= 50 or @avgSendFrames >= 150)
-              #console.log key, 'Low quality', @options.lowQuality
+              DEBUG && console.log key, 'Low quality', @options.lowQuality
               quality = @options.lowQuality
             else if @mismatchesCount[key] >= 1 or (@avgSendFrames > 0 and @avgSendFrames <= 90 or @avgSendFrames >= 110)
-              #console.log key, 'Medium quality', @options.mediumQuality
+              DEBUG && console.log key, 'Medium quality', @options.mediumQuality
               quality = @options.mediumQuality
         else
           if @avgSendFrames > 0
             if @avgSendFrames <= 75 or @avgSendFrames >= 125
-              #console.log 'Low quality', @options.lowQuality
+              DEBUG && console.log 'Low quality', @options.lowQuality
               quality = @options.lowQuality
             else if @avgSendFrames <= 90 or @avgSendFrames >= 110
-              #console.log 'Medium quality', @options.mediumQuality
+              DEBUG && console.log 'Medium quality', @options.mediumQuality
               quality = @options.mediumQuality
 
       return quality
@@ -159,7 +159,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
         @keyframe = true
         @keyframeQuality = @options.lowQuality
 
-      console.debug 'Send keyframe'
+      DEBUG && console.debug 'Send keyframe'
 
       keyFrame =
         k: true
@@ -201,10 +201,10 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
 
         quality = @_getQuality(key)
 
-        # console.log 'Mismatch',  @mismatchesCount[key] if @mismatchesCount? 
+        DEBUG && console.log 'Mismatch',  @mismatchesCount[key] if @mismatchesCount? 
 
         if @mismatchesCount[key] > 0 or quality > lastFrame.quality
-          console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
+          DEBUG && console.log 'Compressing at rate', quality, 'vs before', lastFrame.quality
           
           lastFrame.quality = quality
           data = @_export newFrame, @options.exportFormat, quality
@@ -247,12 +247,12 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
             mismatchesCount++
               
             if mismatchesCount >= @gridSize * 0.8
-              console.log 'Generate key frame, total mismatches', mismatchesCount
+              DEBUG && console.log 'Generate key frame, total mismatches', mismatchesCount
               @keyframe = false 
               stop = true
 
       if not @sending and framesUpdates.length and @keyframe
-        console.debug "Sending diff"
+        DEBUG && console.debug "Sending diff"
         for frame in framesUpdates
           key = frame.x.toString() + frame.y.toString()
           delete @mismatchesCount[key]
@@ -322,7 +322,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
      * Handler when client's connection opened
     ###
     @_openHandler = =>
-      console.log 'Stream open'
+      DEBUG && console.log 'Stream open'
       @stream = @client.createStream
         room: @room
         type: 'write'
@@ -353,7 +353,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
     ###
     @_frameReceivedHandler = (data) =>
       if data is @constructor.SIGNALS.SERVER_FRAME_RECEIVED
-        console.debug 'Received'
+        DEBUG && console.debug 'Received'
         @framesSent++
         @sending--
       else if data is @constructor.SIGNALS.RECEIVER_SCREENSHOT_REQUEST
@@ -409,7 +409,7 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
      * Handler when screen stream ends
     ###
     @_onEndedHandler = (e) =>
-      console.debug 'onended'
+      DEBUG && console.debug 'onended'
       @trigger 'onended'  
       @stop()
 
