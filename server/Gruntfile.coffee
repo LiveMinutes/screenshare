@@ -98,7 +98,7 @@ module.exports = (grunt) ->
             stdout: true
             execOptions:
               cwd: '<%=dest%>'
-          command: 'forever stop 0 && NODE_ENV=production forever start -c coffee server.coffee'
+          command: '{ forever stopall; NODE_ENV=production forever start -c coffee server.coffee; }'
 
       watch:
           scripts:
