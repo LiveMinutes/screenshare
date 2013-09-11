@@ -181,7 +181,7 @@ class screenshare.ScreenSharingServer extends Base
         if data is Base.SIGNALS.RECEIVER_SCREENSHOT_REQUEST
           console.log 'Client', receiver.screenshareId, 'has requested a screenshot'
           _write room.transmitter, data
-        else if 'key' in data and 't' in data
+        else if 'key' of data and 't' of data
           key = data.key
           timestamp = parseInt(data.t)
 
@@ -220,7 +220,7 @@ class screenshare.ScreenSharingServer extends Base
     ###
     _sendFrame = (frame) ->     
       key = frame.x.toString() + frame.y.toString()
-      console.log 'Dispatch keyframe', key, 'to client', this.screenshareId
+      console.log 'Dispatch frame', key, 'to client', this.screenshareId
       if this.lastTimestamp? and key of this.lastTimestamp and this.lastTimestamp[key]? and parseInt(frame.t) > this.lastTimestamp[key]
         if _write this, frame
           console.log 'Frame', key ,'updated for pending request of receiver', this.screenshareId
