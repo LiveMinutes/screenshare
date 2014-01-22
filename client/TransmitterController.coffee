@@ -449,8 +449,8 @@ class screenshare.ScreenSharingTransmitter extends screenshare.Base
       video:
         mandatory:
           chromeMediaSource: 'screen'
-          maxWidth: @width
-          maxHeight: @height
+          # maxWidth: @width
+          # maxHeight: @height
       @_getUserMediaSuccess
       @_getUserMediaError
 
